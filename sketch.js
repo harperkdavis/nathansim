@@ -32,6 +32,7 @@ let invincibility = 0;
 let guns = {
   'pistol': {
     'mode': 'single',
+    'shots': 1,
     'fireRate': 14,
     'maxAmmo': 18,
     'reload': 40,
@@ -44,6 +45,7 @@ let guns = {
   },
   'rifle': {
     'mode': 'auto',
+    'shots': 1,
     'fireRate': 8,
     'maxAmmo': 45,
     'reload': 50,
@@ -56,18 +58,33 @@ let guns = {
   },
   'sniper': {
     'mode': 'single',
-    'fireRate': 40,
+    'shots': 1,
+    'fireRate': 35,
     'maxAmmo': 10,
-    'reload': 80,
+    'reload': 40,
     'range': 200,
     'damage': 200,
     'speed': 100,
     'power': 20,
     'spread': 0.1,
-    'recoil': 20
+    'recoil': 25
+  },
+  'shotgun': {
+    'mode': 'single',
+    'shots': 5,
+    'fireRate': 15,
+    'maxAmmo': 12,
+    'reload': 40,
+    'range': 20,
+    'damage': 200,
+    'speed': 40,
+    'power': 20,
+    'spread': 10,
+    'recoil': 15
   },
   'supergun': {
     'mode': 'auto',
+    'shots': 1,
     'fireRate': 0,
     'maxAmmo': 1000,
     'reload': 200,
@@ -329,6 +346,9 @@ function keyPressed() {
     currentGun = 'sniper';
     ammo = guns[currentGun]['maxAmmo'];
   } else if (key == '4') {
+    currentGun = 'shotgun';
+    ammo = guns[currentGun]['maxAmmo'];
+  } else if (key == '5') {
     currentGun = 'supergun';
     ammo = guns[currentGun]['maxAmmo'];
   }
@@ -357,14 +377,16 @@ function mousePressed() {
 }
 
 function shoot() {
-  bullets.push({
-    'x': position.x + sin(aim) * 40,
-    'y': position.y + cos(aim) * 40 - 32,
-    'dir': aim + random(-1, 1) * guns[currentGun]['spread'] * 0.01,
-    'damage': guns[currentGun]['damage'],
-    'time': guns[currentGun]['range'],
-    'speed': guns[currentGun]['speed']
-  });
+  for (let i = 0; i < guns[currentGun]['shots']; i++) {
+    bullets.push({
+      'x': position.x + sin(aim) * 40,
+      'y': position.y + cos(aim) * 40 - 32,
+      'dir': aim + random(-1, 1) * guns[currentGun]['spread'] * 0.02,
+      'damage': guns[currentGun]['damage'],
+      'time': guns[currentGun]['range'],
+      'speed': guns[currentGun]['speed']
+    });
+  }
   addParticles(guns[currentGun]['power'], 4, position.x + sin(aim) * 40, position.y + cos(aim) * 40 - 32, -2, 2, -2, 2);
   ammo -= 1;
   cameraShake += guns[currentGun]['power'] / 2;
