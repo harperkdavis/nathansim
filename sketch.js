@@ -39,6 +39,8 @@ let guns = {
     'damage': 10,
     'speed': 40,
     'power': 5,
+    'spread': 10,
+    'recoil': 2,
   },
   'rifle': {
     'mode': 'auto',
@@ -49,6 +51,8 @@ let guns = {
     'damage': 20,
     'speed': 50,
     'power': 3,
+    'spread': 2,
+    'recoil': 2
   },
   'sniper': {
     'mode': 'single',
@@ -59,6 +63,8 @@ let guns = {
     'damage': 200,
     'speed': 100,
     'power': 20,
+    'spread': 0.1,
+    'recoil': 20
   },
   'supergun': {
     'mode': 'auto',
@@ -69,6 +75,8 @@ let guns = {
     'damage': 10,
     'speed': 60,
     'power': 20,
+    'spread': 20,
+    'recoil': 2,
   }
 }
 
@@ -352,7 +360,7 @@ function shoot() {
   bullets.push({
     'x': position.x + sin(aim) * 40,
     'y': position.y + cos(aim) * 40 - 32,
-    'dir': aim,
+    'dir': aim + random(-1, 1) * guns[currentGun]['spread'] * 0.01,
     'damage': guns[currentGun]['damage'],
     'time': guns[currentGun]['range'],
     'speed': guns[currentGun]['speed']
@@ -361,6 +369,10 @@ function shoot() {
   ammo -= 1;
   cameraShake += guns[currentGun]['power'] / 2;
   lastShot = frameCount;
+  velX += sin(aim + Math.PI) * guns[currentGun]['recoil'];
+  velY += cos(aim + Math.PI) * guns[currentGun]['recoil'] * 0.3;
+
+  nathanHeight -= random(0.5, 1) * 0.04 * guns[currentGun]['recoil'];
 }
 
 function addParticles(count, size, x, y, xv, xvm, yv, yvm) {
