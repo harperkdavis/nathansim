@@ -1,6 +1,7 @@
 let nathans = {
   'standard': {
-    'image': undefined
+    'image': undefined,
+    'waterbottle': undefined
   }
 }
 
@@ -18,19 +19,22 @@ let walls = [];
 let bullets = [];
 let particles = [];
 
+let enemies = [];
+
 let lastShot = -100000;
 let ammo = 12;
 let ammoAnim = 1;
 
 let reloadTime = 0;
+let invincibility = 0;
 
 
 let guns = {
   'pistol': {
     'mode': 'single',
     'fireRate': 14,
-    'maxAmmo': 12,
-    'reload': 100,
+    'maxAmmo': 18,
+    'reload': 40,
     'range': 70,
     'damage': 10,
     'speed': 40,
@@ -39,8 +43,8 @@ let guns = {
   'rifle': {
     'mode': 'auto',
     'fireRate': 8,
-    'maxAmmo': 30,
-    'reload': 150,
+    'maxAmmo': 45,
+    'reload': 50,
     'range': 100,
     'damage': 20,
     'speed': 50,
@@ -49,8 +53,8 @@ let guns = {
   'sniper': {
     'mode': 'single',
     'fireRate': 40,
-    'maxAmmo': 6,
-    'reload': 300,
+    'maxAmmo': 10,
+    'reload': 80,
     'range': 200,
     'damage': 200,
     'speed': 100,
@@ -62,13 +66,13 @@ let guns = {
     'maxAmmo': 1000,
     'reload': 200,
     'range': 30,
-    'damage': 1,
+    'damage': 10,
     'speed': 60,
     'power': 20,
   }
 }
 
-let currentGun = 'rifle';
+let currentGun = 'pistol';
 let currentNathan = 'standard';
 
 let nathanHeight = 1, nathanHeightTarget = 1;
@@ -98,12 +102,27 @@ function setup() {
   ]
 
   nathans['standard']['image'] = loadImage("https://i.imgur.com/qNRBIvl.png");
+  nathans['standard']['waterbottle'] = loadImage("https://i.imgur.com/FVKJteN.png");
 
   shop['navButtons'] = [
     new ShopButton(0, 150, 200, 40, "Upgrades", () => {
-  
+      shopPage = 0;
+    }),
+    new ShopButton(200, 150, 200, 40, "Guns", () => {
+      shopPage = 1;
+    }),
+    new ShopButton(400, 150, 200, 40, "Stocks", () => {
+      shopPage = 2;
+    }),
+    new ShopButton(600, 150, 99, 40, "Close", () => {
+      shopOpen = false;
     })
   ]
+
+  enemies = [];
+  for (let i = 0; i < 20; i++) {
+    enemies.push(new Enemy(1000 + 200 * i, -200, 0));
+  }
 
   position = createVector(0, 0);
   correction = createVector(0, 0);
@@ -160,10 +179,6 @@ function update() {
   position.y += velY;
 
   walls.forEach(wall => {
-    if (wall.within(position.x + 16 * (1 / nathanHeight), position.y - 64 * nathanHeight) || wall.within(position.x - 16 * (1 / nathanHeight), position.y - 64 * nathanHeight)) {
-      velY = -velY / 2;
-      position.y = wall.y + wall.h + 64 * nathanHeight;
-    }
     if (wall.within(position.x + 32 * (1 / nathanHeight), position.y - 32 * nathanHeight)) {
       correction = position;
       position.x = wall.x - 32 * (1 / nathanHeight) - 0.1;
@@ -177,6 +192,10 @@ function update() {
       let difference = createVector(position.x - correction.x, position.y - correction.y);
       position = correction;
       correction = difference;
+    }
+    if (wall.within(position.x + 16 * (1 / nathanHeight), position.y - 64 * nathanHeight) || wall.within(position.x - 16 * (1 / nathanHeight), position.y - 64 * nathanHeight)) {
+      velY = -velY / 2;
+      position.y = wall.y + wall.h + 64 * nathanHeight;
     }
   });
 
@@ -194,10 +213,12 @@ function update() {
   }
 
   if (guns[currentGun]['mode'] == 'auto' && mouseIsPressed) {
-    if (reloadTime <= 0) {
-      if (ammo > 0) {
-        if (frameCount > lastShot + guns[currentGun]['fireRate']) {
-          shoot();
+    if (!shopOpen) {
+      if (reloadTime <= 0) {
+        if (ammo > 0) {
+          if (frameCount > lastShot + guns[currentGun]['fireRate']) {
+            shoot();
+          }
         }
       }
     }
@@ -205,6 +226,23 @@ function update() {
 
   bullets.forEach(bullet => {
     bullet['time'] -= 1;
+    enemies.forEach(enemy => {
+      let hit = inteceptCircleLineSeg({
+        radius: 100, 
+        center: createVector(enemy.x, enemy.y)
+      }, {
+        p1: createVector(bullet['x'], bullet['y']),
+        p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
+      });
+      if (hit.length > 0) {
+        enemy.health -= bullet['damage'];
+        bullet['time'] = 0;
+
+        addParticles(bullet['damage'] * 0.1 + 4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
+      }
+    });
+    
+
     bullet['x'] += sin(bullet['dir']) * bullet['speed'];
     bullet['y'] += cos(bullet['dir']) * bullet['speed'];
   });
@@ -226,6 +264,7 @@ function update() {
   particles.forEach(particle => {
     if (particle['time'] > 0) {
       particle['time'] -= 0.2;
+
       particle['x'] += particle['xv'];
       particle['y'] += particle['yv'];
       particle['yv'] += GRAVITY;
@@ -233,6 +272,30 @@ function update() {
   });
 
   particles = particles.filter(particle => particle['time'] > 0);
+
+  enemies.forEach(enemy => {
+    enemy.update();
+    if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 40) {
+      money -= floor(random(20, 40));
+      isGrounded = false;
+      velX = enemy.xv * 4;
+      nathanHeight = 0.8;
+      velY = -random(5, 10);
+      position.y -= 4;
+      invincibility = 20;
+      cameraShake = 10;
+    }
+  });
+  invincibility--;
+  
+  enemies = enemies.filter(enemy => {
+    if (enemy.health < 0) {
+      enemy.die();
+      return false;
+    }
+    return true;
+  });
+
   
 }
 
@@ -242,7 +305,26 @@ function keyPressed() {
     shopOpen = !shopOpen;
   } else if (key == 'r') {
     reloadTime = guns[currentGun]['reload'];
+  } else if (key == 'p') {
+    for (let i = 0; i < 20; i++) {
+      enemies.push(new Enemy(1000 + 200 * i, -200, 0));
+    }
   }
+
+  if (key == '1') {
+    currentGun = 'pistol';
+    ammo = guns[currentGun]['maxAmmo'];
+  } else if (key == '2') {
+    currentGun = 'rifle';
+    ammo = guns[currentGun]['maxAmmo'];
+  } else if (key == '3') {
+    currentGun = 'sniper';
+    ammo = guns[currentGun]['maxAmmo'];
+  } else if (key == '4') {
+    currentGun = 'supergun';
+    ammo = guns[currentGun]['maxAmmo'];
+  }
+
 }
 
 function keyReleased() {
@@ -251,13 +333,18 @@ function keyReleased() {
 
 function mousePressed() {
   if (guns[currentGun]['mode'] == 'single') {
-    if (reloadTime <= 0) {
-      if (ammo > 0) {
-        if (frameCount > lastShot + guns[currentGun]['fireRate']) {
-          shoot();
+    if (!shopOpen) {
+      if (reloadTime <= 0) {
+        if (ammo > 0) {
+          if (frameCount > lastShot + guns[currentGun]['fireRate']) {
+            shoot();
+          }
         }
       }
     }
+  }
+  if (ammo == 0) {
+    reloadTime = guns[currentGun]['reload'];
   }
 }
 
@@ -272,7 +359,7 @@ function shoot() {
   });
   addParticles(guns[currentGun]['power'], 4, position.x + sin(aim) * 40, position.y + cos(aim) * 40 - 32, -2, 2, -2, 2);
   ammo -= 1;
-  cameraShake += guns[currentGun]['power'];
+  cameraShake += guns[currentGun]['power'] / 2;
   lastShot = frameCount;
 }
 
@@ -307,13 +394,22 @@ function draw() {
   imageMode(CORNERS);
   image(nathans[currentNathan]['image'], -32 * (1 / nathanHeight) + position.x + correction.x, position.y + correction.y, 33 * (1 / nathanHeight) + position.x + correction.x, -64 * nathanHeight + position.y + correction.y);
 
+  if (invincibility > 0) {
+    fill(255, 0, 0, 100);
+    rect(-32.5 * (1 / nathanHeight) + position.x + correction.x, position.y + correction.y, 32.5 * (1 / nathanHeight) + position.x + correction.x, -65 * nathanHeight + position.y + correction.y);
+  }
+
   walls.forEach(wall => {
     wall.draw();
   });
+  
+  enemies.forEach(enemy => {
+    enemy.draw();
+  })
 
   bullets.forEach(bullet => {
     strokeWeight(2);
-    line(bullet['x'], bullet['y'], bullet['x'] + sin(bullet['dir']) * (20 + bullet['damage'] * 0.2), bullet['y'] + cos(bullet['dir']) * (20 + bullet['damage'] * 0.2))
+    line(bullet['x'], bullet['y'], bullet['x'] + sin(bullet['dir']) * (40 + bullet['damage'] * 0.2), bullet['y'] + cos(bullet['dir']) * (40 + bullet['damage'] * 0.2))
   })
 
   strokeWeight(1);
@@ -341,7 +437,7 @@ function draw() {
 
   textSize(12);
   text("Version 1.0", 8, 30);
-  text("Press [Q] to open the Shop", 8, 135);
+  text("Press [Q] to open the Shop, [1-4] to switch guns, [P] to respawn enemies", 8, 135);
 
   
   textAlign(RIGHT, BOTTOM);
@@ -360,9 +456,9 @@ function draw() {
   text(currentGun.toUpperCase(), width - 30, height - 70);
 
   stroke(0);
-  rect(width - 24, height - 100, 10, 80);
+  rect(width - 24, height - 200, 10, 180);
   fill(255);
-  rect(width - 24, height - 100 + (1 - ammoAnim) * 80, 10, 80 * ammoAnim);
+  rect(width - 24, height - 200 + (1 - ammoAnim) * 180, 10, 180 * ammoAnim);
 
   fill(0);
 
@@ -389,6 +485,40 @@ function draw() {
 
 function isWithin(x, y, x1, y1, w, h) {
   return x >= x1 && x <= x1 + w && y >= y1 && y <= y1 + h;
+}
+
+// https://stackoverflow.com/questions/37224912/circle-line-segment-collision/37225895
+function inteceptCircleLineSeg(circle, line){
+  var a, b, c, d, u1, u2, ret, retP1, retP2, v1, v2;
+  v1 = {};
+  v2 = {};
+  v1.x = line.p2.x - line.p1.x;
+  v1.y = line.p2.y - line.p1.y;
+  v2.x = line.p1.x - circle.center.x;
+  v2.y = line.p1.y - circle.center.y;
+  b = (v1.x * v2.x + v1.y * v2.y);
+  c = 2 * (v1.x * v1.x + v1.y * v1.y);
+  b *= -2;
+  d = Math.sqrt(b * b - 2 * c * (v2.x * v2.x + v2.y * v2.y - circle.radius * circle.radius));
+  if(isNaN(d)){ // no intercept
+      return [];
+  }
+  u1 = (b - d) / c;  // these represent the unit distance of point one and two on the line
+  u2 = (b + d) / c;    
+  retP1 = {};   // return points
+  retP2 = {}  
+  ret = []; // return array
+  if(u1 <= 1 && u1 >= 0){  // add point if on the line segment
+      retP1.x = line.p1.x + v1.x * u1;
+      retP1.y = line.p1.y + v1.y * u1;
+      ret[0] = retP1;
+  }
+  if(u2 <= 1 && u2 >= 0){  // second add point if on the line segment
+      retP2.x = line.p1.x + v1.x * u2;
+      retP2.y = line.p1.y + v1.y * u2;
+      ret[ret.length] = retP2;
+  }       
+  return ret;
 }
 
 class ShopButton {
@@ -428,6 +558,75 @@ class ShopButton {
 
     
   }
+}
+
+class Enemy {
+
+  constructor(x, y, t) {
+    this.x = x;
+    this.y = y;
+    this.t = t;
+    this.xv = 0;
+    this.yv = 0;
+    this.movedelay = 30;
+    this.health = 100;
+    this.maxHealth = 100;
+    this.hLerp = 1;
+  }
+
+  update() {
+    if (this.movedelay < 0) {
+      if (position.x < this.x) {
+        this.xv = (random(0, 10) < 1 ? -1 : 1) * random(-5, -15);
+      } else {
+        this.xv = (random(0, 10) < 1 ? -1 : 1) * random(5, 15);
+      }
+      this.yv = random(2, 10);
+      this.movedelay = 60 + random(0, 30);
+    } else {
+      this.movedelay -= 1;
+    }
+    this.yv += GRAVITY * 2;
+
+    walls.forEach(wall => {
+      if (wall.within(this.x + this.xv + 32, this.y)) {
+        this.xv = -abs(this.xv / 2);
+      }
+      if (wall.within(this.x + this.xv - 32, this.y)) {
+        this.xv = abs(this.xv / 2);
+      }
+      if (wall.within(this.x + this.xv, this.y + this.yv)) {
+        this.yv = -abs(this.yv);
+      }
+    });
+
+    this.x += this.xv;
+    this.y += this.yv;
+
+    this.hLerp = lerp(this.hLerp, this.health / this.maxHealth, 0.1);
+  }
+
+  draw() {
+    stroke(0);
+    fill(255);
+    ellipse(this.x, this.y - 32, 64, 64);
+
+    imageMode(CENTER);
+    image(nathans[currentNathan]['waterbottle'], this.x, this.y - 32, 20, 50);
+
+    stroke(0);
+    fill(0);
+    rect(this.x - 50, this.y - 110, 100, 10);
+
+    fill(255 * (1 - this.hLerp), 255 * this.hLerp, 0);
+    rect(this.x - 50, this.y - 110, 100 * this.hLerp, 10);
+  }
+
+  die() {
+    money += 50 + floor(random(0, 100));
+    addParticles(20, 10, this.x, this.y, -8, 8, -8, 8);
+  }
+
 }
 
 class Wall {
