@@ -13,6 +13,9 @@ let CRIT_CHANCE = 0.05;
 let CRIT_MULTIPLIER = 2;
 
 let money = 1000;
+let multiplier = 1;
+
+let comboAnim = 0, multAnim = 0;
 
 let keys = [];
 let walls = [];
@@ -35,26 +38,26 @@ let guns = {
     'shots': 1,
     'fireRate': 14,
     'maxAmmo': 18,
-    'reload': 40,
+    'reload': 10,
     'range': 70,
     'damage': 10,
     'speed': 40,
     'power': 5,
     'spread': 10,
-    'recoil': 2,
+    'recoil': 8,
   },
   'rifle': {
     'mode': 'auto',
     'shots': 1,
     'fireRate': 8,
     'maxAmmo': 45,
-    'reload': 50,
+    'reload': 25,
     'range': 100,
     'damage': 20,
     'speed': 50,
     'power': 3,
     'spread': 2,
-    'recoil': 2
+    'recoil': 6
   },
   'sniper': {
     'mode': 'single',
@@ -67,29 +70,29 @@ let guns = {
     'speed': 100,
     'power': 20,
     'spread': 0.1,
-    'recoil': 25
+    'recoil': 35
   },
   'shotgun': {
     'mode': 'single',
     'shots': 5,
     'fireRate': 15,
     'maxAmmo': 12,
-    'reload': 40,
+    'reload': 20,
     'range': 20,
-    'damage': 200,
+    'damage': 10,
     'speed': 40,
     'power': 20,
     'spread': 10,
-    'recoil': 15
+    'recoil': 25
   },
   'supergun': {
     'mode': 'auto',
     'shots': 1,
     'fireRate': 0,
     'maxAmmo': 1000,
-    'reload': 200,
+    'reload': 1,
     'range': 30,
-    'damage': 10,
+    'damage': 100,
     'speed': 60,
     'power': 20,
     'spread': 20,
@@ -160,6 +163,9 @@ function update() {
   correction = createVector(lerp(correction.x, 0, 0.2), lerp(correction.y, 0, 0.2));
   cameraShake = lerp(cameraShake, 0, 0.1);
 
+  comboAnim = lerp(comboAnim, 0, 0.1);
+  multAnim = lerp(multAnim, isGrounded ? 0 : 1, 0.1);
+
   shopPos = lerp(shopPos, shopOpen ? 0 : -1000, 0.1);
   ammoAnim = lerp(ammoAnim, ammo / guns[currentGun]['maxAmmo'], 0.2);
 
@@ -178,6 +184,7 @@ function update() {
   }
 
   if (isGrounded) {
+    multiplier = 1;
     position.y = groundedWall.y - 1;
     velY = 0;
     if (keys[' ']) {
@@ -261,7 +268,7 @@ function update() {
       });
       if (hit.length > 0) {
         enemy.health -= bullet['damage'];
-        bullet['time'] = 0;
+        bullet['time'] /= 2;
 
         addParticles(bullet['damage'] * 0.1 + 4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
       }
@@ -309,6 +316,12 @@ function update() {
       position.y -= 4;
       invincibility = 20;
       cameraShake = 10;
+      
+      if (!isGrounded) {
+        multiplier = ((multiplier - 1) / 2) + 1;
+        multAnim = 0.5;
+      }
+      
     }
   });
   invincibility--;
@@ -473,7 +486,11 @@ function draw() {
   text("Version 1.0", 8, 30);
   text("Press [Q] to open the Shop, [1-4] to switch guns, [P] to respawn enemies", 8, 135);
 
-  
+  textSize(64 * multAnim + comboAnim * 32 + multiplier);
+  textAlign(CENTER, TOP);
+  text(nf(multiplier, 1, 1) + "x", width / 2, 40);
+
+
   textAlign(RIGHT, BOTTOM);
 
   textSize(64);
@@ -657,8 +674,11 @@ class Enemy {
   }
 
   die() {
-    money += 50 + floor(random(0, 100));
+    money += floor((50 + random(0, 100)) * multiplier);
+    multiplier += 0.1 + random(0, 0.2) * log(multiplier);
     addParticles(20, 10, this.x, this.y, -8, 8, -8, 8);
+
+    comboAnim += 1;
   }
 
 }
