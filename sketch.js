@@ -449,6 +449,9 @@ function update() {
   } else {
     nathanHeightTarget = 1;
   }
+  if (currentNathan == 'rufus') {
+    nathanHeightTarget *= 2;
+  }
   nathanHeight += abs(velY) * 0.001;
 
   velY += GRAVITY * (keys['s'] ? 1.5 : keys['w'] ? 0.9 : 1);
