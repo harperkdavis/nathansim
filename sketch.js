@@ -36,6 +36,8 @@ let comboAnim = 0, multAnim = 0;
 
 let keys = [];
 let walls = [];
+let localWalls = [];
+
 let bullets = [];
 let particles = [];
 
@@ -56,7 +58,7 @@ let guns = {
     'fireRate': 18,
     'maxAmmo': 16,
     'reload': 30,
-    'range': 30,
+    'range': 20,
     'damage': 4,
     'speed': 40,
     'pen': 0.001,
@@ -70,7 +72,7 @@ let guns = {
     'fireRate': 8,
     'maxAmmo': 45,
     'reload': 25,
-    'range': 100,
+    'range': 50,
     'damage': 20,
     'speed': 50,
     'pen': 0.4,
@@ -84,7 +86,7 @@ let guns = {
     'fireRate': 2,
     'maxAmmo': 60,
     'reload': 20,
-    'range': 50,
+    'range': 25,
     'damage': 10,
     'speed': 50,
     'pen': 0.1,
@@ -98,7 +100,7 @@ let guns = {
     'fireRate': 35,
     'maxAmmo': 10,
     'reload': 40,
-    'range': 200,
+    'range': 100,
     'damage': 200,
     'speed': 100,
     'pen': 1,
@@ -112,7 +114,7 @@ let guns = {
     'fireRate': 15,
     'maxAmmo': 12,
     'reload': 20,
-    'range': 20,
+    'range': 10,
     'damage': 10,
     'speed': 40,
     'pen': 0.2,
@@ -395,7 +397,7 @@ function update() {
   }
 
   nathanHeight = lerp(nathanHeight, nathanHeightTarget, 0.1);
-  camera = createVector(lerp(camera.x, position.x, 0.1), lerp(camera.y, position.y, 0.1));
+  camera = createVector(lerp(camera.x, position.x, 0.2), lerp(camera.y, position.y, 0.2));
   cameraShake = lerp(cameraShake, 0, 0.1);
 
   comboAnim = lerp(comboAnim, 0, 0.1);
@@ -421,6 +423,8 @@ function update() {
   
   if (abs(velX) < PLAYER_SPEED || Math.sign(velX) != Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
     velX += ((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)) * PLAYER_SPEED * (isGrounded ? 0.2 : 0.1);
+  } else if (isGrounded && abs(velX) > PLAYER_SPEED && Math.sign(velX) == Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
+    velX = Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0))) * PLAYER_SPEED;
   }
   if (!keys['a'] && !keys['d']) {
     if (isGrounded) {
@@ -432,10 +436,18 @@ function update() {
 
   let newX = position.x + velX;
   let newY = position.y + velY;
+
+  localWalls = [];
+
+  walls.forEach(wall => {
+    if (!(wall.x > width && wall.x + wall.w < 0 && wall.y > height && wall.y + wall.h < 0)) {
+      localWalls.push(wall);
+    }
+  });
   
   let prevGrounded = isGrounded;
   isGrounded = false;
-  walls.forEach(wall => {
+  localWalls.forEach(wall => {
     {
       let left = intersectPoint(position.x - 32, position.y, newX - 32, newY, wall.x, wall.y, wall.x + wall.w, wall.y);
       let right = intersectPoint(position.x + 32, position.y, newX + 32, newY, wall.x, wall.y, wall.x + wall.w, wall.y);
@@ -521,6 +533,12 @@ function update() {
     nathanHeight = 0.001;
   }
 
+  if (keys['l']) {
+    for (let i = 0; i < 100; i++) {
+      enemies.push(new Enemy(3000 + i, -200, 0, 10));
+    }
+  }
+
   if (reloadTime >= 0) {
     reloadTime -= 1;
     if (reloadTime <= 0) {
@@ -569,7 +587,7 @@ function update() {
       return false;
     }
     let isInAWall = false;
-    walls.forEach(wall => {
+    localWalls.forEach(wall => {
       if (wall.within(bullet['x'], bullet['y'])) {
         isInAWall = true;
         addParticles(4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
@@ -666,18 +684,22 @@ function keyPressed() {
   console.log(keys);
 
   if (jumps > 0 && keys[' ']) {
-    velY = -JUMP_HEIGHT - (1 - nathanHeight) * 8;
     position.y -= 4;
-    walls.forEach(wall => {
+    let wallJumping = false;
+    localWalls.forEach(wall => {
       if (wall.within(position.x - 34, position.y - 32)) {
         velX = PLAYER_SPEED;
         position.x += 4;
+        wallJumping = true;
       }
       if (wall.within(position.x + 34, position.y - 32)) {
         velX = -PLAYER_SPEED;
         position.x -= 4;
+        wallJumping = true;
       }
     });
+    velY = (-JUMP_HEIGHT - (1 - nathanHeight) * 8);
+    
     jumps--;
   }
 
@@ -756,6 +778,9 @@ function shoot() {
 }
 
 function addParticles(count, size, x, y, xv, xvm, yv, yvm) {
+  if (particles.length + count > 1000) {
+    return;
+  }
   for (let i = 0; i < count; i++) {
     particles.push({
       'time': size,
@@ -819,7 +844,7 @@ function draw() {
     rect(-32.5 * (1 / nathanHeight) + position.x, position.y, 32.5 * (1 / nathanHeight) + position.x, -65 * nathanHeight + position.y);
   }
 
-  walls.forEach(wall => {
+  localWalls.forEach(wall => {
     wall.draw();
   });
 
