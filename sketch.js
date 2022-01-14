@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 2;
+const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 3;
 const PATCH_NAME = "Movement Update";
 
 let sfx = {
@@ -384,6 +384,10 @@ function setup() {
   for (let i = 0; i < 101; i++) {
     calcStock((100 - i) * -60);
   }
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 
 function update() {
