@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 1;
+const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 2;
 const PATCH_NAME = "Movement Update";
 
 let sfx = {
