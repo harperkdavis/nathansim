@@ -1,5 +1,5 @@
 const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 4;
-const PATCH_NAME = "Shop Update";
+const PATCH_NAME = "Secret Rufus Update";
 
 let sfx = {
   'shoot': undefined,
