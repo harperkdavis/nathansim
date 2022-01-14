@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 1, PATCH_VERSION = 6;
+const MAJOR_VERSION = 0, MINOR_VERSION = 1, PATCH_VERSION = 7;
 
 let sfx = {
   'shoot': undefined,
@@ -18,8 +18,13 @@ let JUMP_HEIGHT = 7;
 let CRIT_CHANCE = 0.05;
 let CRIT_MULTIPLIER = 2;
 
+let LUCK = 1;
+let DAMAGE_MULTIPLIER = 1;
+
 let AUTOAIM_RADIUS = 400;
 let AUTOAIM_ENABLED = false;
+
+let MAX_JUMPS = 1;
 
 let autoaimOffset;
 
@@ -47,16 +52,16 @@ let guns = {
   'pistol': {
     'mode': 'single',
     'shots': 1,
-    'fireRate': 14,
-    'maxAmmo': 18,
-    'reload': 10,
-    'range': 70,
-    'damage': 10,
+    'fireRate': 18,
+    'maxAmmo': 16,
+    'reload': 30,
+    'range': 30,
+    'damage': 4,
     'speed': 40,
-    'pen': 0.6,
+    'pen': 0.001,
     'power': 5,
-    'spread': 10,
-    'recoil': 8,
+    'spread': 7,
+    'recoil': 12,
   },
   'rifle': {
     'mode': 'auto',
@@ -70,7 +75,7 @@ let guns = {
     'pen': 0.4,
     'power': 3,
     'spread': 2,
-    'recoil': 6
+    'recoil': 5
   },
   'smg': {
     'mode': 'auto',
@@ -84,7 +89,7 @@ let guns = {
     'pen': 0.1,
     'power': 3,
     'spread': 8,
-    'recoil': 4,
+    'recoil': 3,
   },
   'sniper': {
     'mode': 'single',
@@ -98,7 +103,7 @@ let guns = {
     'pen': 1,
     'power': 20,
     'spread': 0.1,
-    'recoil': 35
+    'recoil': 32
   },
   'shotgun': {
     'mode': 'single',
@@ -116,15 +121,15 @@ let guns = {
   },
   'supergun': {
     'mode': 'auto',
-    'shots': 1,
+    'shots': 10,
     'fireRate': 0,
-    'maxAmmo': 1000,
+    'maxAmmo': 1000000,
     'reload': 1,
     'range': 30,
-    'damage': 100,
+    'damage': 1000,
     'speed': 60,
     'pen': 2,
-    'power': 20,
+    'power': 0,
     'spread': 20,
     'recoil': 2,
   }
@@ -145,6 +150,8 @@ let velX = 0, velY = 0;
 let position;
 let camera;
 let cameraShake = 0;
+
+let jumps = 1;
 
 let aim = 0;
 let aimX = 0;
@@ -234,6 +241,7 @@ let stocks = [
     'longname': "SORPA Computer Company",
     'seed': 0,
     'data': [],
+    'shares': 0,
   },
   {
     'name': 'NVCN',
@@ -247,6 +255,7 @@ let stocks = [
     'longname': "Lockers United",
     'seed': 0,
     'data': [],
+    'shares': 0,
   },
   {
     'name': 'WATR',
@@ -279,7 +288,18 @@ function setup() {
   walls = [
     new Wall(-10000, 0, 40000, 10000),
     new Wall(-10000, -40000, 9000, 50000),
-    new Wall(-1000, -1000, 2000, 1000)
+    new Wall(-1000, -1000, 2000, 1000),
+    new Wall(1000, -900, 200, 900),
+    new Wall(1200, -800, 200, 800),
+    new Wall(1400, -700, 200, 700),
+    new Wall(1600, -600, 200, 600),
+    new Wall(1800, -500, 200, 500),
+    new Wall(2000, -400, 200, 400),
+    new Wall(2200, -300, 200, 300),
+    new Wall(2400, -200, 200, 200),
+    new Wall(2600, -100, 200, 100),
+
+    new Wall(-800, -1200, 100, 100)
   ]
 
   nathans['standard']['image'] = loadImage("https://i.imgur.com/qNRBIvl.png");
@@ -333,12 +353,21 @@ function setup() {
     new ShopButton(530, 608, 50, 22, "1000", () => {
       sellStock(stockOpen, 1000);
     }),
+    new ShopButton(590, 578, 60, 22, "10000", () => {
+      buyStock(stockOpen, 10000);
+    }),
+    new ShopButton(590, 608, 60, 22, "10000", () => {
+      sellStock(stockOpen, 10000);
+    }),
+    new ShopButton(660, 578, 30, 22, "M", () => {
+      buyStock(stockOpen, floor(money / stocks[stockOpen]['data'][99]));
+    }),
+    new ShopButton(660, 608, 30, 22, "M", () => {
+      sellStock(stockOpen, stocks[stockOpen]['shares']);
+    }),
   ]
 
   enemies = [];
-  for (let i = 0; i < 20; i++) {
-    enemies.push(new Enemy(1000 + 200 * i, -200, 0, 1));
-  }
 
   position = createVector(0, -1200);
   camera = createVector(0, 0);
@@ -374,67 +403,118 @@ function update() {
   shopPos = lerp(shopPos, shopOpen ? 0 : -1000, 0.1);
   ammoAnim = lerp(ammoAnim, ammo / guns[currentGun]['maxAmmo'], 0.2);
 
-  let hasLanded = isGrounded;
-  isGrounded = false;
-  let groundedWall;
-  walls.forEach(wall => {
-    if (abs(velX) < PLAYER_SPEED + 1 && wall.within(position.x + 16 * (1 / nathanHeight), position.y + 2) || wall.within(position.x - 16 * (1 / nathanHeight), position.y + 2)) {
-      isGrounded = true;
-      groundedWall = wall;
-    }
-  });
-
-  if (!hasLanded && isGrounded) {
-    nathanHeight -= abs(velY) * 0.06;
-  }
-
   if (isGrounded) {
     multiplier = 1;
-    position.y = groundedWall.y - 1;
-    velY = 0;
-    if (keys[' ']) {
-      velY = -JUMP_HEIGHT - (1 - nathanHeight) * 8;
-      position.y -= 4;
-      isGrounded = false;
-    }
-    if (keys['s']) {
-      nathanHeightTarget = 0.8;
-    } else if (keys['w']) {
-      nathanHeightTarget = 1.2;
-    } else {
-      nathanHeightTarget = 1;
-    }
-  } else {
-    velY += GRAVITY * (keys['s'] ? 1.5 : keys['w'] ? 0.9 : 1);
-    nathanHeightTarget = 1;
-    nathanHeight += abs(velY) * 0.002;
   }
 
-  velX = lerp(velX, ((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)) * PLAYER_SPEED, 0.2);
+  if (keys['s']) {
+    nathanHeightTarget = 0.8;
+  } else if (keys['w']) {
+    nathanHeightTarget = 1.2;
+  } else {
+    nathanHeightTarget = 1;
+  }
+  nathanHeight += abs(velY) * 0.001;
 
-  position.x += velX;
-  position.y += velY;
+  velY += GRAVITY * (keys['s'] ? 1.5 : keys['w'] ? 0.9 : 1);
+  
+  if (abs(velX) < PLAYER_SPEED || Math.sign(velX) != Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
+    velX += ((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)) * PLAYER_SPEED * (isGrounded ? 0.2 : 0.1);
+  }
+  if (!keys['a'] && !keys['d']) {
+    if (isGrounded) {
+      velX = lerp(velX, 0, 0.2);
+    } else {
+      velX = lerp(velX, 0, 0.01);
+    }
+  }
 
+  let newX = position.x + velX;
+  let newY = position.y + velY;
+  
+  let prevGrounded = isGrounded;
+  isGrounded = false;
   walls.forEach(wall => {
-    if (position.x < wall.x && wall.within(position.x + 32 * (1 / nathanHeight), position.y - 32 * nathanHeight)) {
-      let correction = position;
-      position.x = wall.x - 32 * (1 / nathanHeight) - 0.1;
-      if (mag(position.x - correction.x, position.y - correction.y) > 80) {
-        position = correction;
+    {
+      let left = intersectPoint(position.x - 32, position.y, newX - 32, newY, wall.x, wall.y, wall.x + wall.w, wall.y);
+      let right = intersectPoint(position.x + 32, position.y, newX + 32, newY, wall.x, wall.y, wall.x + wall.w, wall.y);
+
+      if (left != false) {
+        newY = left.y - 0.1;
+        isGrounded = true;
+        jumps = MAX_JUMPS;
+        if (!prevGrounded) {
+          nathanHeight -= velY * 0.04;
+        }
+        velY = 0;
+      } else if (right != false) {
+        newY = right.y - 0.1;
+        isGrounded = false;
+        jumps = MAX_JUMPS;
+        if (!prevGrounded) {
+          nathanHeight -= velY * 0.04;
+        } 
+        velY = 0;
       }
     }
-    if (position.x > wall.x + wall.w && wall.within(position.x - 32 * (1 / nathanHeight), position.y - 32 * nathanHeight)) {
-      let correction = position;
-      position.x = wall.x + wall.w + 32 * (1 / nathanHeight) + 0.1;
-      if (mag(position.x - correction.x, position.y - correction.y) > 80) {
-        position = correction;
+    {
+      let left = intersectPoint(position.x - 32, position.y - 64, newX - 32, newY - 64, wall.x, wall.y + wall.h, wall.x + wall.w, wall.y + wall.h);
+      let right = intersectPoint(position.x + 32, position.y - 64, newX + 32, newY - 64, wall.x, wall.y + wall.h, wall.x + wall.w, wall.y + wall.h);
+
+      if (left != false) {
+        newY = left.y + 64.1;
+        velY = -velY / 2;
+      } else if (right != false) {
+        newY = right.y + 64.1;
+        velY = -velY / 2;
       }
     }
-    if (position.y < wall.y + wall.h && wall.within(position.x + 16 * (1 / nathanHeight), position.y - 64 * nathanHeight) || wall.within(position.x - 16 * (1 / nathanHeight), position.y - 64 * nathanHeight)) {
-      velY = -velY / 2;
-      position.y = wall.y + wall.h + 64 * nathanHeight;
+    {
+      let right = intersectPoint(position.x + 32, position.y, newX + 32, newY, wall.x, wall.y, wall.x, wall.y + wall.h);
+      let top = intersectPoint(position.x + 32, position.y - 64, newX + 32, newY - 64, wall.x, wall.y, wall.x, wall.y + wall.h);
+
+      if (right != false) {
+        newX = right.x - 32.1;
+        nathanHeight += velY * 0.04;
+        velX = 0;
+        jumps = MAX_JUMPS;
+        if (velY > 0) {
+          velY /= 2;
+        }
+      } else if (top != false) {
+        newX = top.x - 32.1;
+        velX = 0;
+        jumps = MAX_JUMPS;
+        if (velY > 0) {
+          velY /= 2;
+        }
+      }
     }
+    {
+      let left = intersectPoint(position.x - 32, position.y, newX - 32, newY, wall.x + wall.w, wall.y, wall.x + wall.w, wall.y + wall.h);
+      let top = intersectPoint(position.x - 32, position.y - 64, newX - 32, newY - 64, wall.x + wall.w, wall.y, wall.x + wall.w, wall.y + wall.h);
+
+      if (left != false) {
+        newX = left.x + 32.1;
+        velX = 0;
+        jumps = MAX_JUMPS;
+        if (velY > 0) {
+          velY /= 2;
+        }
+      } else if (top != false) {
+        newX = top.x + 32.1;
+        velX = 0;
+        jumps = MAX_JUMPS;
+        if (velY > 0) {
+          velY /= 2;
+        }
+      }
+    }
+    
   });
+
+  position.x = newX;
+  position.y = newY;  
 
   if (nathanHeight < 0.001) {
     nathanHeight = 0.001;
@@ -474,7 +554,7 @@ function update() {
         bullet['time'] *= bullet['pen'];
         bullet['time'] -= 1;
 
-        addParticles(bullet['damage'] * 0.1 + 4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
+        addParticles(4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
       }
     });
     
@@ -491,7 +571,7 @@ function update() {
     walls.forEach(wall => {
       if (wall.within(bullet['x'], bullet['y'])) {
         isInAWall = true;
-        addParticles(bullet['damage'] * 0.1 + 4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
+        addParticles(4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
       }
     });
     return !isInAWall;
@@ -520,8 +600,7 @@ function update() {
       }
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 40) {
-      money -= floor(random(20, 40));
-      isGrounded = false;
+      money -= floor(random(20, 40) * pow(3, enemy.l));
       velX = enemy.xv * 4;
       nathanHeight = 0.8;
       velY = -random(5, 10);
@@ -529,10 +608,8 @@ function update() {
       invincibility = 20;
       cameraShake = 10;
       
-      if (!isGrounded) {
-        multiplier = ((multiplier - 1) / 2) + 1;
-        multAnim = 0.5;
-      }
+      multiplier = ((multiplier - 1) / 2) + 1;
+      multAnim = 0.5;
       
     }
   });
@@ -542,8 +619,9 @@ function update() {
   invincibility--;
   
   enemies = enemies.filter(enemy => {
-    if (enemy.health < 0) {
+    if (enemy.health <= 0) {
       enemy.die();
+      jumps = MAX_JUMPS;
       return false;
     }
     return true;
@@ -584,13 +662,31 @@ function sellStock(index, count) {
 
 function keyPressed() {
   keys[key] = true;
+  console.log(keys);
+
+  if (jumps > 0 && keys[' ']) {
+    velY = -JUMP_HEIGHT - (1 - nathanHeight) * 8;
+    position.y -= 4;
+    walls.forEach(wall => {
+      if (wall.within(position.x - 34, position.y - 32)) {
+        velX = PLAYER_SPEED;
+        position.x += 4;
+      }
+      if (wall.within(position.x + 34, position.y - 32)) {
+        velX = -PLAYER_SPEED;
+        position.x -= 4;
+      }
+    });
+    jumps--;
+  }
+
   if (key == 'q') {
     shopOpen = !shopOpen;
   } else if (key == 'r') {
     reloadTime = guns[currentGun]['reload'];
   } else if (key == 'p') {
     for (let i = 0; i < 20; i++) {
-      enemies.push(new Enemy(1000 + 200 * i, -200, 0, 1));
+      enemies.push(new Enemy(3000 + 200 * i, -200, 0, floor(random(1, 11))));
     }
   }
 
@@ -648,11 +744,11 @@ function shoot() {
       'pen': guns[currentGun]['pen']
     });
   }
-  addParticles(guns[currentGun]['power'], 4, position.x + sin(aim) * 40, position.y + cos(aim) * 40 - 32, -2, 2, -2, 2);
+  addParticles(guns[currentGun]['power'] * 0.5 + 1, 4, position.x + sin(aim) * 40, position.y + cos(aim) * 40 - 32, -2, 2, -2, 2);
   ammo -= 1;
   cameraShake += guns[currentGun]['power'] / 2;
   lastShot = frameCount;
-  velX += sin(aim + Math.PI) * guns[currentGun]['recoil'];
+  velX += sin(aim + Math.PI) * guns[currentGun]['recoil'] * 0.1;
   velY += cos(aim + Math.PI) * guns[currentGun]['recoil'] * 0.3;
 
   nathanHeight -= random(0.5, 1) * 0.04 * guns[currentGun]['recoil'];
@@ -728,8 +824,9 @@ function draw() {
 
   enemies.forEach(enemy => {
     enemy.draw();
-  })
+  });
 
+  stroke(0);
   bullets.forEach(bullet => {
     strokeWeight(2);
     line(bullet['x'], bullet['y'], bullet['x'] + sin(bullet['dir']) * (40 + bullet['damage'] * 0.2), bullet['y'] + cos(bullet['dir']) * (40 + bullet['damage'] * 0.2))
@@ -784,6 +881,15 @@ function draw() {
   textAlign(CENTER, TOP);
   text(nf(multiplier, 1, 1) + "x", width / 2, 40);
 
+  if (!isGrounded) {
+    textSize(64);
+    textAlign(LEFT, TOP);
+    fill(0, 100);
+    text(".".repeat(MAX_JUMPS), width / 2 - textWidth(".".repeat(MAX_JUMPS)) / 2, -20);
+
+    fill(0);
+    text(".".repeat(jumps), width / 2 - textWidth(".".repeat(MAX_JUMPS)) / 2, -20);
+  }
 
   textAlign(RIGHT, BOTTOM);
 
@@ -908,7 +1014,7 @@ function isWithin(x, y, x1, y1, w, h) {
 
 // https://stackoverflow.com/questions/37224912/circle-line-segment-collision/37225895
 function inteceptCircleLineSeg(circle, line){
-  var a, b, c, d, u1, u2, ret, retP1, retP2, v1, v2;
+  let a, b, c, d, u1, u2, ret, retP1, retP2, v1, v2;
   v1 = {};
   v2 = {};
   v1.x = line.p2.x - line.p1.x;
@@ -938,6 +1044,49 @@ function inteceptCircleLineSeg(circle, line){
       ret[ret.length] = retP2;
   }       
   return ret;
+}
+
+// https://stackoverflow.com/questions/9043805/test-if-two-lines-intersect-javascript-function
+function intersects(a, b, c, d, p, q, r, s) {
+  let det, gamma, lambda;
+  det = (c - a) * (s - q) - (r - p) * (d - b);
+  if (det === 0) {
+    return false;
+  } else {
+    lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+    gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+    return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+  }
+};
+
+// https://stackoverflow.com/questions/13937782/calculating-the-point-of-intersection-of-two-lines
+function intersectPoint(x1, y1, x2, y2, x3, y3, x4, y4) {
+
+  // Check if none of the lines are of length 0
+    if ((x1 === x2 && y1 === y2) || (x3 === x4 && y3 === y4)) {
+        return false
+    }
+
+    denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
+
+  // Lines are parallel
+    if (denominator === 0) {
+        return false
+    }
+
+    let ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator
+    let ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator
+
+  // is the intersection along the segments
+    if (ua < 0 || ua > 1 || ub < 0 || ub > 1) {
+        return false
+    }
+
+  // Return a object with the x and y coordinates of the intersection
+    let x = x1 + ua * (x2 - x1)
+    let y = y1 + ua * (y2 - y1)
+
+    return {x, y}
 }
 
 class ShopButton {
@@ -988,21 +1137,23 @@ class Enemy {
     this.l = l;
     this.xv = 0;
     this.yv = 0;
-    this.movedelay = 30;
-    this.health = 100;
-    this.maxHealth = 100;
+    this.speed = 160 - 10 * l;
+    this.movedelay = this.speed;
+    this.maxHealth = floor(10 * exp(l - 1));
+    this.health = this.maxHealth;
+    
     this.hLerp = 1;
   }
 
   update() {
     if (this.movedelay < 0) {
       if (position.x < this.x) {
-        this.xv = (random(0, 10) < 1 ? -1 : 1) * random(-5, -15);
+        this.xv = ((random(0, 10) < 1 ? -1 : 1) * random(-5, -15)) * 0.1 * this.l;
       } else {
-        this.xv = (random(0, 10) < 1 ? -1 : 1) * random(5, 15);
+        this.xv = ((random(0, 10) < 1 ? -1 : 1) * random(5, 15)) * 0.1 * this.l;
       }
-      this.yv = random(2, 10);
-      this.movedelay = 60 + random(0, 30);
+      this.yv = random(2, 5) * (this.l + 2) * 0.5;
+      this.movedelay = this.speed + random(0, 30);
     } else {
       this.movedelay -= 1;
     }
@@ -1016,7 +1167,7 @@ class Enemy {
         this.xv = abs(this.xv / 2);
       }
       if (wall.within(this.x + this.xv, this.y + this.yv)) {
-        this.yv = -abs(this.yv);
+        this.yv = -abs(this.yv * 0.8);
       }
     });
 
@@ -1028,24 +1179,35 @@ class Enemy {
 
   draw() {
     stroke(0);
+    strokeWeight(1 + this.l / 4);
     fill(255);
     ellipse(this.x, this.y - 32, 64, 64);
 
     imageMode(CENTER);
     image(enem['waterbottle']['image'], this.x, this.y - 32, 20, 50);
 
+    strokeWeight(1);
     stroke(0);
-    fill(0);
-    rect(this.x - 50, this.y - 100, 100, 5);
+    fill(100);
+    rect(this.x - 50, this.y - 100, 100, 10);
 
     fill(255 * (1 - this.hLerp), 255 * this.hLerp, 0);
-    rect(this.x - 50, this.y - 100, 100 * this.hLerp, 5);
+    rect(this.x - 50, this.y - 100, 100 * this.hLerp, 10);
+
+    textSize(10);
+    fill(0);
+    noStroke();
+
+    textAlign(LEFT, TOP);
+    text(this.health + " / " + this.maxHealth, this.x - 48, this.y - 99.5);
+    
+    text("Lv. " + this.l, this.x - 48, this.y - 110);
   }
 
   die() {
-    money += floor((50 + random(0, 100)) * multiplier);
+    money += floor(((50 + random(0, 100)) * multiplier) * pow(2, this.l));
     multiplier += 0.1 + random(0, 0.2) * log(multiplier);
-    addParticles(20, 10, this.x, this.y, -8, 8, -8, 8);
+    addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
 
     comboAnim += 1;
   }
