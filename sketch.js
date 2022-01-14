@@ -1,4 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 1, PATCH_VERSION = 7;
+const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 1;
+const PATCH_NAME = "Movement Update";
 
 let sfx = {
   'shoot': undefined,
@@ -601,7 +602,7 @@ function update() {
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 40) {
       money -= floor(random(20, 40) * pow(3, enemy.l));
-      velX = enemy.xv * 4;
+      velX = enemy.xv;
       nathanHeight = 0.8;
       velY = -random(5, 10);
       position.y -= 4;
@@ -874,7 +875,7 @@ function draw() {
   text("Nathan Simulator", 8, 4);
 
   textSize(12);
-  text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION, 8, 30);
+  text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
   text("Press [Q] to open the Shop, [1-6] to switch guns, [P] to respawn enemies", 8, 135);
 
   textSize(64 * multAnim + comboAnim * 32 + multiplier);
