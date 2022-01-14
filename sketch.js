@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 3;
-const PATCH_NAME = "Movement Update";
+const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 4;
+const PATCH_NAME = "Shop Update";
 
 let sfx = {
   'shoot': undefined,
@@ -9,7 +9,25 @@ let sfx = {
 let nathans = {
   'standard': {
     'image': undefined,
+  },
+  'rufus': {
+    'image': undefined,
   }
+}
+
+let upgrades = {
+  "speed": {
+    value: 5,
+    level: 0,
+    baseprice: 1000,
+    factor: 0.5,
+  },
+  "jump": {
+    value: 5,
+    level: 0,
+    baseprice: 1000,
+    factor: 0.5,
+  },
 }
 
 let GRAVITY = 0.2;
@@ -35,6 +53,7 @@ let multiplier = 1;
 let comboAnim = 0, multAnim = 0;
 
 let keys = [];
+let keylogger = [];
 let walls = [];
 let localWalls = [];
 
@@ -137,6 +156,8 @@ let guns = {
     'recoil': 2,
   }
 }
+
+let ownedGuns = ['pistol'];
 
 let enem = {
   'waterbottle': {
@@ -306,6 +327,7 @@ function setup() {
   ]
 
   nathans['standard']['image'] = loadImage("https://i.imgur.com/qNRBIvl.png");
+  nathans['rufus']['image'] = loadImage("https://i.imgur.com/ehb9nsw.png");
   enem['waterbottle']['image'] = loadImage("https://i.imgur.com/FVKJteN.png");
 
   shop['navButtons'] = [
@@ -368,6 +390,12 @@ function setup() {
     new ShopButton(660, 608, 30, 22, "M", () => {
       sellStock(stockOpen, stocks[stockOpen]['shares']);
     }),
+  ]
+
+  shop['upgradePurchase'] = [
+    new ShopButton(20, 220, 150, 30, "Speed", () => {
+
+    })
   ]
 
   enemies = [];
@@ -495,16 +523,10 @@ function update() {
         nathanHeight += velY * 0.04;
         velX = 0;
         jumps = MAX_JUMPS;
-        if (velY > 0) {
-          velY /= 2;
-        }
       } else if (top != false) {
         newX = top.x - 32.1;
         velX = 0;
         jumps = MAX_JUMPS;
-        if (velY > 0) {
-          velY /= 2;
-        }
       }
     }
     {
@@ -515,16 +537,10 @@ function update() {
         newX = left.x + 32.1;
         velX = 0;
         jumps = MAX_JUMPS;
-        if (velY > 0) {
-          velY /= 2;
-        }
       } else if (top != false) {
         newX = top.x + 32.1;
         velX = 0;
         jumps = MAX_JUMPS;
-        if (velY > 0) {
-          velY /= 2;
-        }
       }
     }
     
@@ -655,6 +671,8 @@ function update() {
   if (frameCount % 60 == 0) {
     calcStock(frameCount);
   }
+
+  console.log(keys);
 }
 
 function calcStock(frCount) {
@@ -683,9 +701,25 @@ function sellStock(index, count) {
   }
 }
 
+function getValue(val) {
+  return upgrades[val]['value'];
+}
+
 function keyPressed() {
   keys[key] = true;
   console.log(keys);
+
+  keylogger.push(key);
+
+  if (keylogger.length >= 5) {
+    if (keylogger[keylogger.length - 5] == 'r' &&
+      keylogger[keylogger.length - 4] == 'u' &&
+      keylogger[keylogger.length - 3] == 'f' &&
+      keylogger[keylogger.length - 2] == 'u' &&
+      keylogger[keylogger.length - 1] == 's') {
+        currentNathan = 'rufus';
+      }
+  }
 
   if (jumps > 0 && keys[' ']) {
     position.y -= 4;
@@ -956,7 +990,9 @@ function draw() {
   });
 
   if (shopPage == 0) {
-
+    shop['upgradePurchase'].forEach(btn => {
+      btn.draw();
+    });
   } else if (shopPage == 1) {
 
   } else if (shopPage == 2) {
