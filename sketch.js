@@ -1,6 +1,8 @@
 const MAJOR_VERSION = 0, MINOR_VERSION = 3, PATCH_VERSION = 0;
 const PATCH_NAME = "The Shop Update";
 
+let inMainMenu = true;
+
 let sfx = {
   'shoot': undefined,
   'damage': undefined,
@@ -144,7 +146,7 @@ let AUTOAIM_ENABLED = false;
 
 let autoaimOffset;
 
-let money = 1000;
+let money = 10000000000;
 let multiplier = 1;
 
 let comboAnim = 0, multAnim = 0;
@@ -173,9 +175,9 @@ let guns = {
     'shots': 1,
     'fireRate': 18,
     'maxAmmo': 16,
-    'reload': 30,
+    'reload': 45,
     'range': 20,
-    'damage': 4,
+    'damage': 6,
     'speed': 40,
     'pen': 0.001,
     'power': 5,
@@ -183,41 +185,101 @@ let guns = {
     'recoil': 12,
     'price': 0
   },
+  'double barrel': {
+    'mode': 'single',
+    'shots': 4,
+    'fireRate': 5,
+    'maxAmmo': 2,
+    'reload': 25,
+    'range': 8,
+    'damage': 15,
+    'speed': 40,
+    'pen': 0.2,
+    'power': 20,
+    'spread': 15,
+    'recoil': 20,
+    'price': 2000
+  },
+  'auto pistol': {
+    'mode': 'auto',
+    'shots': 1,
+    'fireRate': 18,
+    'maxAmmo': 16,
+    'reload': 45,
+    'range': 20,
+    'damage': 4,
+    'speed': 40,
+    'pen': 0.001,
+    'power': 10,
+    'spread': 12,
+    'recoil': 10,
+    'price': 6000
+  },
+  'submachine gun': {
+    'mode': 'auto',
+    'shots': 1,
+    'fireRate': 3,
+    'maxAmmo': 40,
+    'reload': 40,
+    'range': 20,
+    'damage': 8,
+    'speed': 50,
+    'pen': 0.1,
+    'power': 3,
+    'spread': 12,
+    'recoil': 3,
+    'price': 20000
+  },
   'automatic rifle': {
     'mode': 'auto',
     'shots': 1,
     'fireRate': 8,
-    'maxAmmo': 45,
+    'maxAmmo': 30,
+    'reload': 25,
+    'range': 50,
+    'damage': 30,
+    'speed': 50,
+    'pen': 0.6,
+    'power': 3,
+    'spread': 2,
+    'recoil': 12,
+    'price': 60000
+  },
+  'shotgun': {
+    'mode': 'single',
+    'shots': 6,
+    'fireRate': 15,
+    'maxAmmo': 12,
+    'reload': 20,
+    'range': 10,
+    'damage': 12,
+    'speed': 40,
+    'pen': 0.2,
+    'power': 20,
+    'spread': 10,
+    'recoil': 25,
+    'price': 120000
+  },
+  'triple shot': {
+    'mode': 'auto',
+    'shots': 3,
+    'fireRate': 8,
+    'maxAmmo': 30,
     'reload': 25,
     'range': 50,
     'damage': 20,
     'speed': 50,
     'pen': 0.4,
-    'power': 3,
-    'spread': 2,
-    'recoil': 5,
-    'price': 100
-  },
-  'submachine gun': {
-    'mode': 'auto',
-    'shots': 1,
-    'fireRate': 2,
-    'maxAmmo': 60,
-    'reload': 20,
-    'range': 25,
-    'damage': 10,
-    'speed': 50,
-    'pen': 0.1,
-    'power': 3,
-    'spread': 8,
-    'recoil': 3,
-    'price': 200
+    'power': 2,
+    'spread': 4,
+    'recoil': 14,
+    'price': 400000
   },
   'sniper': {
     'mode': 'single',
     'shots': 1,
     'fireRate': 35,
-    'maxAmmo': 10,
+    'maxAmmo': 12,
     'reload': 40,
     'range': 100,
     'damage': 200,
@@ -226,22 +288,67 @@ let guns = {
     'power': 20,
     'spread': 0.1,
     'recoil': 32,
-    'price': 300
+    'price': 1000000
   },
-  'shotgun': {
+  'double sniper': {
     'mode': 'single',
-    'shots': 5,
-    'fireRate': 15,
+    'shots': 2,
+    'fireRate': 35,
     'maxAmmo': 12,
+    'reload': 40,
+    'range': 100,
+    'damage': 400,
+    'speed': 100,
+    'pen': 1,
+    'power': 20,
+    'spread': 2,
+    'recoil': 40,
+    'price': 12000000
+  },
+  'supernova': {
+    'mode': 'single',
+    'shots': 12,
+    'fireRate': 12,
+    'maxAmmo': 18,
     'reload': 20,
     'range': 10,
-    'damage': 10,
+    'damage': 24,
     'speed': 40,
     'pen': 0.2,
-    'power': 20,
-    'spread': 10,
-    'recoil': 25,
-    'price': 400
+    'power': 24,
+    'spread': 6,
+    'recoil': 32,
+    'price': 40000000
+  },
+  'penta shot': {
+    'mode': 'auto',
+    'shots': 5,
+    'fireRate': 14,
+    'maxAmmo': 50,
+    'reload': 25,
+    'range': 50,
+    'damage': 40,
+    'speed': 50,
+    'pen': 0.4,
+    'power': 2,
+    'spread': 6,
+    'recoil': 14,
+    'price': 100000000
+  },
+  'nathan killer': {
+    'mode': 'auto',
+    'shots': 5,
+    'fireRate': 6,
+    'maxAmmo': 100,
+    'reload': 20,
+    'range': 50,
+    'damage': 100,
+    'speed': 50,
+    'pen': 0.8,
+    'power': 2,
+    'spread': 3,
+    'recoil': 12,
+    'price': 500000000
   },
   'supergun': {
     'mode': 'auto',
@@ -256,7 +363,7 @@ let guns = {
     'power': 0,
     'spread': 20,
     'recoil': 2,
-    'price': 1
+    'price': 1000000000
   }
 }
 
@@ -528,7 +635,7 @@ function setup() {
     for (let k = 0; k < 5; k++) {
       shop['gunEquip'].push(new ShopButton(515 + 35 * k, 220 + 35 * j, 30, 30, k + 1, () => {
         if (ownedGuns.includes(key)) {
-          if (k != currentGunSlot) {
+          if (equippedGuns[k]['name'] != key) {
             equippedGuns.forEach(eqp => {
               if (eqp['name'] == key) {
                 eqp['name'] = '';
@@ -988,7 +1095,7 @@ function shoot() {
 }
 
 function addParticles(count, size, x, y, xv, xvm, yv, yvm) {
-  if (particles.length + count > 1000) {
+  if (particles.length + count > 100) {
     return;
   }
   for (let i = 0; i < count; i++) {
