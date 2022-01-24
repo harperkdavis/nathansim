@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 3, PATCH_VERSION = 0;
-const PATCH_NAME = "The Shop Update";
+const MAJOR_VERSION = 0, MINOR_VERSION = 4, PATCH_VERSION = 0;
+const PATCH_NAME = "The Full Shop Update";
 
 let inMainMenu = true;
 
