@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 4;
-const PATCH_NAME = "Secret Rufus Update";
+const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 6;
+const PATCH_NAME = "Shop Update p.1";
 
 let sfx = {
   'shoot': undefined,
@@ -18,26 +18,128 @@ let nathans = {
 let upgrades = {
   "speed": {
     value: 5,
+    baseval: 5,
+    incr: 1,
     level: 0,
+    price: 1000,
     baseprice: 1000,
-    factor: 0.5,
+    factor: 1,
   },
-  "jump": {
-    value: 5,
+  "jump height": {    
+    value: 7,
+    baseval: 7,
+    incr: 1,
     level: 0,
-    baseprice: 1000,
-    factor: 0.5,
+    price: 2000,
+    baseprice: 2000,
+    factor: 1,
+  },
+  "jumps": {    
+    value: 1,
+    baseval: 1,
+    incr: 1,
+    level: 0,
+    price: 1000000,
+    baseprice: 1000000,
+    factor: 1,
+  },
+  "air control": {    
+    value: 1,
+    baseval: 1,
+    incr: 0.1,
+    level: 0,
+    price: 80000,
+    baseprice: 80000,
+    factor: 2,
+  },
+  "damage": {    
+    value: 0.5,
+    baseval: 0.5,
+    incr: 0.25,
+    level: 0,
+    price: 100,
+    baseprice: 100,
+    factor: 1,
+  },
+  "penetration": {    
+    value: 1,
+    baseval: 1,
+    incr: 0.3,
+    level: 0,
+    price: 100000,
+    baseprice: 100000,
+    factor: 1.2,
+  },
+  "precision": {    
+    value: 1,
+    baseval: 1,
+    incr: 0.5,
+    level: 0,
+    price: 400000,
+    baseprice: 400000,
+    factor: 1.5,
+  },
+  "reload": {    
+    value: 0.5,
+    baseval: 0.5,
+    incr: 0.25,
+    level: 0,
+    price: 4000,
+    baseprice: 4000,
+    factor: 1.2,
+  },
+  "recoil": {    
+    value: 0.5,
+    baseval: 0.5,
+    incr: 0.25,
+    level: 0,
+    price: 2000,
+    baseprice: 2000,
+    factor: 1.6,
+  },
+  "ammo": {    
+    value: 1,
+    baseval: 1,
+    incr: 0.2,
+    level: 0,
+    price: 100000,
+    baseprice: 100000,
+    factor: 0.6,
+  },
+  "luck": {    
+    value: 1,
+    baseval: 1,
+    incr: 0.1,
+    level: 0,
+    price: 100,
+    baseprice: 100,
+    factor: 1.5,
+  },
+  "money": {    
+    value: 0.5,
+    baseval: 0.5,
+    incr: 0.2,
+    level: 0,
+    price: 20000,
+    baseprice: 20000,
+    factor: 1.0,
+  },
+  "camera shake": {    
+    value: 1,
+    baseval: 1,
+    incr: 1,
+    level: 0,
+    price: 1,
+    baseprice: 1,
+    factor: 0.001,
   },
 }
 
 let GRAVITY = 0.2;
-let PLAYER_SPEED = 5;
-let JUMP_HEIGHT = 7;
 
 let CRIT_CHANCE = 0.05;
 let CRIT_MULTIPLIER = 2;
 
-let LUCK = 1;
 let DAMAGE_MULTIPLIER = 1;
 
 let AUTOAIM_RADIUS = 400;
@@ -184,7 +286,7 @@ let aimY = 0;
 let isGrounded = false;
 
 let shopOpen = false;
-let shopPage = 2;
+let shopPage = 0;
 let shopPos = -1000;
 
 let shop = {};
@@ -296,8 +398,8 @@ let stocks = [
     'shares': 0,
   },
   {
-    'name': 'PINA',
-    'longname': "Pineapple Allergy Medication",
+    'name': 'ALEX',
+    'longname': "Johnston Video Editing Suite",
     'seed': 0,
     'data': [],
     'shares': 0,
@@ -392,11 +494,22 @@ function setup() {
     }),
   ]
 
-  shop['upgradePurchase'] = [
-    new ShopButton(20, 220, 150, 30, "Speed", () => {
+  shop['upgradePurchase'] = [];
 
-    })
-  ]
+  let i = 0;
+  Object.keys(upgrades).forEach(key => {
+    let upg = upgrades[key];
+    shop['upgradePurchase'].push(new ShopButton(10, 220 + 35 * i, 140, 30, toTitleCase(key), () => {
+      if (money >= upg['price']) {
+        money -= floor(upg['price']);
+        upg['level'] += 1;
+        upg['value'] = upg['baseval'] + upg['incr'] * upg['level'];
+        upg['price'] = floor(upg['baseprice'] * exp(upg['level'] * upg['factor']));
+      }
+    }));
+    shop['upgradePurchase'][i]['upgkey'] = key;
+    i++;
+  });
 
   enemies = [];
 
@@ -436,7 +549,7 @@ function update() {
   multAnim = lerp(multAnim, isGrounded ? 0 : 1, 0.1);
 
   shopPos = lerp(shopPos, shopOpen ? 0 : -1000, 0.1);
-  ammoAnim = lerp(ammoAnim, ammo / guns[currentGun]['maxAmmo'], 0.2);
+  ammoAnim = lerp(ammoAnim, ammo / floor(guns[currentGun]['maxAmmo'] * getValue('ammo')), 0.2);
 
   if (isGrounded) {
     multiplier = 1;
@@ -454,12 +567,12 @@ function update() {
   }
   nathanHeight += abs(velY) * 0.001;
 
-  velY += GRAVITY * (keys['s'] ? 1.5 : keys['w'] ? 0.9 : 1);
+  velY += GRAVITY * (keys['s'] ? 1.5 * getValue("air control") : keys['w'] ? 0.9 / getValue("air control"): 1);
   
-  if (abs(velX) < PLAYER_SPEED || Math.sign(velX) != Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
-    velX += ((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)) * PLAYER_SPEED * (isGrounded ? 0.2 : 0.1);
-  } else if (isGrounded && abs(velX) > PLAYER_SPEED && Math.sign(velX) == Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
-    velX = Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0))) * PLAYER_SPEED;
+  if (abs(velX) < getValue("speed") || Math.sign(velX) != Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
+    velX += ((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)) * getValue("speed") * (isGrounded ? 0.2 : 0.1);
+  } else if (isGrounded && abs(velX) > getValue("speed") && Math.sign(velX) == Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0)))) {
+    velX = Math.sign(((keys['a'] ? -1 : 0) + (keys['d'] ? 1 : 0))) * getValue("speed");
   }
   if (!keys['a'] && !keys['d']) {
     if (isGrounded) {
@@ -490,7 +603,7 @@ function update() {
       if (left != false) {
         newY = left.y - 0.1;
         isGrounded = true;
-        jumps = MAX_JUMPS;
+        jumps = getValue("jumps");
         if (!prevGrounded) {
           nathanHeight -= velY * 0.04;
         }
@@ -498,7 +611,7 @@ function update() {
       } else if (right != false) {
         newY = right.y - 0.1;
         isGrounded = false;
-        jumps = MAX_JUMPS;
+        jumps = getValue("jumps");
         if (!prevGrounded) {
           nathanHeight -= velY * 0.04;
         } 
@@ -525,11 +638,11 @@ function update() {
         newX = right.x - 32.1;
         nathanHeight += velY * 0.04;
         velX = 0;
-        jumps = MAX_JUMPS;
+        jumps = getValue("jumps");
       } else if (top != false) {
         newX = top.x - 32.1;
         velX = 0;
-        jumps = MAX_JUMPS;
+        jumps = getValue("jumps");
       }
     }
     {
@@ -539,11 +652,11 @@ function update() {
       if (left != false) {
         newX = left.x + 32.1;
         velX = 0;
-        jumps = MAX_JUMPS;
+        jumps = getValue("jumps");
       } else if (top != false) {
         newX = top.x + 32.1;
         velX = 0;
-        jumps = MAX_JUMPS;
+        jumps = getValue("jumps");
       }
     }
     
@@ -565,7 +678,7 @@ function update() {
   if (reloadTime >= 0) {
     reloadTime -= 1;
     if (reloadTime <= 0) {
-      ammo = guns[currentGun]['maxAmmo'];
+      ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
     }
   }
 
@@ -592,8 +705,8 @@ function update() {
         p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
       });
       if (hit.length > 0) {
-        enemy.health -= bullet['damage'];
-        bullet['time'] *= bullet['pen'];
+        enemy.health -= floor(bullet['damage'] * getValue("damage"));
+        bullet['time'] *= bullet['pen'] * getValue("penetration");
         bullet['time'] -= 1;
 
         addParticles(4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
@@ -642,13 +755,13 @@ function update() {
       }
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 40) {
-      money -= floor(random(20, 40) * pow(3, enemy.l));
+      money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l)) / getValue("money"));
       velX = enemy.xv;
       nathanHeight = 0.8;
       velY = -random(5, 10);
       position.y -= 4;
       invincibility = 20;
-      cameraShake = 10;
+      cameraShake = 10 * getValue('camera shake');
       
       multiplier = ((multiplier - 1) / 2) + 1;
       multAnim = 0.5;
@@ -674,8 +787,6 @@ function update() {
   if (frameCount % 60 == 0) {
     calcStock(frameCount);
   }
-
-  console.log(keys);
 }
 
 function calcStock(frCount) {
@@ -729,17 +840,17 @@ function keyPressed() {
     let wallJumping = false;
     localWalls.forEach(wall => {
       if (wall.within(position.x - 34, position.y - 32)) {
-        velX = PLAYER_SPEED;
+        velX = getValue('speed');
         position.x += 4;
         wallJumping = true;
       }
       if (wall.within(position.x + 34, position.y - 32)) {
-        velX = -PLAYER_SPEED;
+        velX = -getValue('speed');
         position.x -= 4;
         wallJumping = true;
       }
     });
-    velY = (-JUMP_HEIGHT - (1 - nathanHeight) * 8);
+    velY = (-getValue('jump height') - (1 - nathanHeight) * 8);
     
     jumps--;
   }
@@ -747,7 +858,7 @@ function keyPressed() {
   if (key == 'q') {
     shopOpen = !shopOpen;
   } else if (key == 'r') {
-    reloadTime = guns[currentGun]['reload'];
+    reloadTime = floor(guns[currentGun]['reload'] / getValue("reload"));
   } else if (key == 'p') {
     for (let i = 0; i < 20; i++) {
       enemies.push(new Enemy(3000 + 200 * i, -200, 0, floor(random(1, 11))));
@@ -756,22 +867,22 @@ function keyPressed() {
 
   if (key == '1') {
     currentGun = 'pistol';
-    ammo = guns[currentGun]['maxAmmo'];
+    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   } else if (key == '2') {
     currentGun = 'rifle';
-    ammo = guns[currentGun]['maxAmmo'];
+    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   } else if (key == '3') {
     currentGun = 'sniper';
-    ammo = guns[currentGun]['maxAmmo'];
+    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   } else if (key == '4') {
     currentGun = 'smg';
-    ammo = guns[currentGun]['maxAmmo'];
+    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   } else if (key == '5') {
     currentGun = 'shotgun';
-    ammo = guns[currentGun]['maxAmmo'];
+    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   } else if (key == '6') {
     currentGun = 'supergun';
-    ammo = guns[currentGun]['maxAmmo'];
+    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   }
 }
 
@@ -792,7 +903,7 @@ function mousePressed() {
     }
   }
   if (ammo == 0) {
-    reloadTime = guns[currentGun]['reload'];
+    reloadTime = floor(guns[currentGun]['reload'] / getValue('reload'));
   }
 }
 
@@ -801,8 +912,8 @@ function shoot() {
     bullets.push({
       'x': position.x + sin(aim) * 40,
       'y': position.y + cos(aim) * 40 - 32,
-      'dir': aim + random(-1, 1) * guns[currentGun]['spread'] * 0.02,
-      'damage': floor(guns[currentGun]['damage'] * random(0.9, 1.1)),
+      'dir': aim + (random(-1, 1) * guns[currentGun]['spread'] * 0.02) / getValue('precision'),
+      'damage': floor(guns[currentGun]['damage'] * randomBias(0.9, 1.1, getValue('luck') / 2, 1)),
       'time': guns[currentGun]['range'],
       'speed': guns[currentGun]['speed'],
       'pen': guns[currentGun]['pen']
@@ -810,10 +921,10 @@ function shoot() {
   }
   addParticles(guns[currentGun]['power'] * 0.5 + 1, 4, position.x + sin(aim) * 40, position.y + cos(aim) * 40 - 32, -2, 2, -2, 2);
   ammo -= 1;
-  cameraShake += guns[currentGun]['power'] / 2;
+  cameraShake += (guns[currentGun]['power'] / 2) * getValue('camera shake');
   lastShot = frameCount;
-  velX += sin(aim + Math.PI) * guns[currentGun]['recoil'] * 0.1;
-  velY += cos(aim + Math.PI) * guns[currentGun]['recoil'] * 0.3;
+  velX += sin(aim + Math.PI) * guns[currentGun]['recoil'] * 0.1 * getValue('recoil');
+  velY += cos(aim + Math.PI) * guns[currentGun]['recoil'] * 0.3 * getValue('recoil');
 
   nathanHeight -= random(0.5, 1) * 0.04 * guns[currentGun]['recoil'];
 }
@@ -944,7 +1055,7 @@ function draw() {
   text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
   text("Press [Q] to open the Shop, [1-6] to switch guns, [P] to respawn enemies", 8, 135);
 
-  textSize(64 * multAnim + comboAnim * 32 + multiplier);
+  textSize(64 * multAnim + comboAnim * 2 + multiplier * 0.2);
   textAlign(CENTER, TOP);
   text(nf(multiplier, 1, 1) + "x", width / 2, 40);
 
@@ -993,8 +1104,33 @@ function draw() {
   });
 
   if (shopPage == 0) {
+    let i = 0;
     shop['upgradePurchase'].forEach(btn => {
       btn.draw();
+
+      let upg = upgrades[btn['upgkey']];
+      
+      textAlign(LEFT, TOP);
+      fill(0);
+      noStroke();
+      if (money < upg['price']) {
+        fill(255, 0, 0);
+      }
+      textSize(18);
+      text("$" + upg['price'].toLocaleString(), 160, 234 + 35 * i);
+
+      textSize(12);
+      text("Price", 160, 220 + 35 * i);
+
+      textAlign(RIGHT, TOP);
+
+      textSize(18);
+      text(upg['level'], 330, 232 + 35 * i);
+      
+      textSize(12);
+      text("Level", 330, 220 + 35 * i);
+
+      i++;
     });
   } else if (shopPage == 1) {
 
@@ -1075,6 +1211,14 @@ function draw() {
   line(mouseX - 20, mouseY, mouseX + 20, mouseY);
   line(mouseX, mouseY - 20, mouseX, mouseY + 20);
   
+}
+
+function randomBias(min, max, bias, inf) {
+  let b = lerp(min, max, bias);
+  let rnd = random(min, max);
+  let mix = random() * inf;
+  console.log(rnd * (1 - mix) + b * mix);
+  return rnd * (1 - mix) + b * mix;
 }
 
 function isWithin(x, y, x1, y1, w, h) {
@@ -1158,6 +1302,16 @@ function intersectPoint(x1, y1, x2, y2, x3, y3, x4, y4) {
     return {x, y}
 }
 
+// https://stackoverflow.com/questions/196972/convert-string-to-title-case-with-javascript
+function toTitleCase(str) {
+  return str.replace(
+    /\w\S*/g,
+    function(txt) {
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    }
+  );
+}
+
 class ShopButton {
   constructor(x, y, w, h, text, fnc) {
     this.x = x;
@@ -1192,8 +1346,6 @@ class ShopButton {
     fill(0);
     noStroke();
     text(this.text, this.x + this.w / 2, this.y + this.h / 2);
-
-    
   }
 }
 
@@ -1274,8 +1426,8 @@ class Enemy {
   }
 
   die() {
-    money += floor(((50 + random(0, 100)) * multiplier) * pow(2, this.l));
-    multiplier += 0.1 + random(0, 0.2) * log(multiplier);
+    money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money"));
+    multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
     addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
 
     comboAnim += 1;
