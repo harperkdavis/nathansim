@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 2, PATCH_VERSION = 6;
-const PATCH_NAME = "Shop Update p.1";
+const MAJOR_VERSION = 0, MINOR_VERSION = 3, PATCH_VERSION = 0;
+const PATCH_NAME = "The Shop Update";
 
 let sfx = {
   'shoot': undefined,
@@ -19,20 +19,20 @@ let upgrades = {
   "speed": {
     value: 5,
     baseval: 5,
-    incr: 1,
+    incr: 0.5,
     level: 0,
     price: 1000,
     baseprice: 1000,
-    factor: 1,
+    factor: 0.5,
   },
   "jump height": {    
     value: 7,
     baseval: 7,
-    incr: 1,
+    incr: 0.5,
     level: 0,
     price: 2000,
     baseprice: 2000,
-    factor: 1,
+    factor: 0.5,
   },
   "jumps": {    
     value: 1,
@@ -48,9 +48,9 @@ let upgrades = {
     baseval: 1,
     incr: 0.1,
     level: 0,
-    price: 80000,
-    baseprice: 80000,
-    factor: 2,
+    price: 500,
+    baseprice: 500,
+    factor: 0.3,
   },
   "damage": {    
     value: 0.5,
@@ -59,7 +59,7 @@ let upgrades = {
     level: 0,
     price: 100,
     baseprice: 100,
-    factor: 1,
+    factor: 0.5,
   },
   "penetration": {    
     value: 1,
@@ -68,7 +68,7 @@ let upgrades = {
     level: 0,
     price: 100000,
     baseprice: 100000,
-    factor: 1.2,
+    factor: 0.7,
   },
   "precision": {    
     value: 1,
@@ -77,7 +77,7 @@ let upgrades = {
     level: 0,
     price: 400000,
     baseprice: 400000,
-    factor: 1.5,
+    factor: 0.6,
   },
   "reload": {    
     value: 0.5,
@@ -86,7 +86,7 @@ let upgrades = {
     level: 0,
     price: 4000,
     baseprice: 4000,
-    factor: 1.2,
+    factor: 0.2,
   },
   "recoil": {    
     value: 0.5,
@@ -127,7 +127,7 @@ let upgrades = {
   "camera shake": {    
     value: 1,
     baseval: 1,
-    incr: 1,
+    incr: 100,
     level: 0,
     price: 1,
     baseprice: 1,
@@ -136,9 +136,6 @@ let upgrades = {
 }
 
 let GRAVITY = 0.2;
-
-let CRIT_CHANCE = 0.05;
-let CRIT_MULTIPLIER = 2;
 
 let DAMAGE_MULTIPLIER = 1;
 
@@ -184,8 +181,9 @@ let guns = {
     'power': 5,
     'spread': 7,
     'recoil': 12,
+    'price': 0
   },
-  'rifle': {
+  'automatic rifle': {
     'mode': 'auto',
     'shots': 1,
     'fireRate': 8,
@@ -197,9 +195,10 @@ let guns = {
     'pen': 0.4,
     'power': 3,
     'spread': 2,
-    'recoil': 5
+    'recoil': 5,
+    'price': 100
   },
-  'smg': {
+  'submachine gun': {
     'mode': 'auto',
     'shots': 1,
     'fireRate': 2,
@@ -212,6 +211,7 @@ let guns = {
     'power': 3,
     'spread': 8,
     'recoil': 3,
+    'price': 200
   },
   'sniper': {
     'mode': 'single',
@@ -225,7 +225,8 @@ let guns = {
     'pen': 1,
     'power': 20,
     'spread': 0.1,
-    'recoil': 32
+    'recoil': 32,
+    'price': 300
   },
   'shotgun': {
     'mode': 'single',
@@ -239,7 +240,8 @@ let guns = {
     'pen': 0.2,
     'power': 20,
     'spread': 10,
-    'recoil': 25
+    'recoil': 25,
+    'price': 400
   },
   'supergun': {
     'mode': 'auto',
@@ -254,10 +256,13 @@ let guns = {
     'power': 0,
     'spread': 20,
     'recoil': 2,
+    'price': 1
   }
 }
 
 let ownedGuns = ['pistol'];
+let currentGunSlot = 0;
+let equippedGuns = [{name:'pistol', ammo: 16}, {name:'', ammo: 0}, {name:'', ammo: 0}, {name:'', ammo: 0}, {name:'', ammo: 0}];
 
 let enem = {
   'waterbottle': {
@@ -410,7 +415,7 @@ function setup() {
   createCanvas(innerWidth, innerHeight);
 
   walls = [
-    new Wall(-10000, 0, 40000, 10000),
+    new Wall(-10000, 0, 1000000, 10000),
     new Wall(-10000, -40000, 9000, 50000),
     new Wall(-1000, -1000, 2000, 1000),
     new Wall(1000, -900, 200, 900),
@@ -509,6 +514,44 @@ function setup() {
     i++;
   });
 
+  shop['gunPurchase'] = [];
+  shop['gunEquip'] = [];
+  let j = 0;
+  Object.keys(guns).forEach(key => {
+    let gun = guns[key];
+    shop['gunPurchase'].push(new ShopButton(10, 220 + 35 * j, 500, 30, toTitleCase(key) + " ($" + gun['price'].toLocaleString() + ")", () => {
+      if (money >= gun['price']) {
+        money -= gun['price'];
+        ownedGuns.push(key);
+      }
+    }));
+    for (let k = 0; k < 5; k++) {
+      shop['gunEquip'].push(new ShopButton(515 + 35 * k, 220 + 35 * j, 30, 30, k + 1, () => {
+        if (ownedGuns.includes(key)) {
+          if (k != currentGunSlot) {
+            equippedGuns.forEach(eqp => {
+              if (eqp['name'] == key) {
+                eqp['name'] = '';
+                eqp['ammo'] = 0;
+              }
+            });
+            
+            equippedGuns[k]['name'] = key;
+            equippedGuns[k]['ammo'] = gun['maxAmmo'];
+            ammo = equippedGuns[k]['ammo'];
+            currentGunSlot = k;
+            currentGun = key;
+          }
+        }
+      }));
+      shop['gunEquip'][j * 5 + k]['gunkey'] = key;
+      shop['gunEquip'][j * 5 + k]['slot'] = k;
+    }
+    shop['gunPurchase'][j]['gunkey'] = key;
+    j++;
+  });
+  
+
   enemies = [];
 
   position = createVector(0, -1200);
@@ -548,6 +591,8 @@ function update() {
 
   shopPos = lerp(shopPos, shopOpen ? 0 : -1000, 0.1);
   ammoAnim = lerp(ammoAnim, ammo / floor(guns[currentGun]['maxAmmo'] * getValue('ammo')), 0.2);
+
+  equippedGuns[currentGunSlot]['ammo'] = ammo;
 
   if (isGrounded) {
     multiplier = 1;
@@ -791,7 +836,7 @@ function calcStock(frCount) {
   stocks.forEach(stock => {
     noiseSeed(stock.seed);
     stock['data'].shift();
-    let newData = frCount / 1000.0 + noise(frCount / 20000.0, 0) * 1000 + noise(frCount / 5000.0, 200) * 200 + noise(frCount / 2000.0, 400) * 50 + noise(frCount / 200.0) * 20 + noise(frCount);
+    let newData = (frCount / 10.0) * getValue('luck') + noise(frCount / 20000.0, 0) * 1000 + noise(frCount / 5000.0, 200) * 200 + noise(frCount / 2000.0, 400) * 50 + noise(frCount / 200.0) * 20 + noise(frCount);
     newData = max(1, newData);
     stock['data'].push(newData);
   });
@@ -864,21 +909,36 @@ function keyPressed() {
   }
 
   if (key == '1') {
-    currentGun = 'pistol';
-    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
+    if (equippedGuns[0]['name'] != '') {
+      currentGunSlot = 0;
+      currentGun = equippedGuns[0]['name'];
+      ammo = equippedGuns[0]['ammo'];
+    }
   } else if (key == '2') {
-    currentGun = 'rifle';
-    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
+    if (equippedGuns[1]['name'] != '') {
+      currentGunSlot = 1;
+      currentGun = equippedGuns[1]['name'];
+      ammo = equippedGuns[1]['ammo'];
+    }
   } else if (key == '3') {
-    currentGun = 'sniper';
-    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
+    if (equippedGuns[2]['name'] != '') {
+      currentGunSlot = 2;
+      currentGun = equippedGuns[2]['name'];
+      ammo = equippedGuns[2]['ammo'];
+    }
   } else if (key == '4') {
-    currentGun = 'smg';
-    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
+    if (equippedGuns[3]['name'] != '') {
+      currentGunSlot = 3;
+      currentGun = equippedGuns[3]['name'];
+      ammo = equippedGuns[3]['ammo'];
+    }
   } else if (key == '5') {
-    currentGun = 'shotgun';
-    ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
-  } else if (key == '6') {
+    if (equippedGuns[4]['name'] != '') {
+      currentGunSlot = 4;
+      currentGun = equippedGuns[4]['name'];
+      ammo = equippedGuns[4]['ammo'];
+    }
+  } else if (key == 'j') {
     currentGun = 'supergun';
     ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   }
@@ -1053,7 +1113,7 @@ function draw() {
   text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
   text("Press [Q] to open the Shop, [1-6] to switch guns, [P] to respawn enemies", 8, 135);
 
-  textSize(64 * multAnim + comboAnim * 2 + multiplier * 0.2);
+  textSize(min(64 * multAnim + comboAnim * 2 + multiplier * 0.2, 128));
   textAlign(CENTER, TOP);
   text(nf(multiplier, 1, 1) + "x", width / 2, 40);
 
@@ -1087,7 +1147,23 @@ function draw() {
   fill(255);
   rect(width - 24, height - 200 + (1 - ammoAnim) * 180, 10, 180 * ammoAnim);
 
-  fill(0);
+  fill(0, 100);
+  noStroke();
+
+  textSize(12);
+  textAlign(RIGHT, TOP);
+  for (let i = 0; i < 5; i++) {
+    let gn = equippedGuns[i];
+    if (gn[i] == '') {
+      fill(0, 100);
+    } else if (i == currentGunSlot) {
+      fill(0);
+    } else {
+      fill(0, 150);
+    }
+    let txt = "[" + (i + 1) + "] " + (gn['name'] == '' ? 'empty' : gn['name']);
+    text(txt, width - 5, height - 400 + 20 * i);
+  }
 
   push();
   translate(shopPos, 0);
@@ -1131,7 +1207,23 @@ function draw() {
       i++;
     });
   } else if (shopPage == 1) {
-
+    let i = 0;
+    shop['gunPurchase'].forEach(btn => {
+      btn.draw();
+      if (ownedGuns.includes(btn['gunkey'])) {
+        fill(0, 0, 255, 50);
+        rect(btn.x, btn.y, btn.w, btn.h);
+      }
+      i++;
+    });
+    shop['gunEquip'].forEach(btn => {
+      btn.draw();
+      if (equippedGuns[btn['slot']]['name'] == btn['gunkey']) {
+        fill(0, 0, 255, 50);
+        rect(btn.x, btn.y, btn.w, btn.h);
+      }
+      i++;
+    });
   } else if (shopPage == 2) {
     fill(0);
     textSize(20);
@@ -1327,7 +1419,7 @@ class ShopButton {
       fill(250);
       if (mouseIsPressed && this.mouseDelay <= 0) { 
         this.fnc();
-        this.mouseDelay = 10;
+        this.mouseDelay = keys['m'] ? 0 : 10;
       }
     } else {
       fill(255);
