@@ -145,8 +145,6 @@ let DAMAGE_MULTIPLIER = 1;
 let AUTOAIM_RADIUS = 400;
 let AUTOAIM_ENABLED = false;
 
-let MAX_JUMPS = 1;
-
 let autoaimOffset;
 
 let money = 1000;
@@ -776,7 +774,7 @@ function update() {
   enemies = enemies.filter(enemy => {
     if (enemy.health <= 0) {
       enemy.die();
-      jumps = MAX_JUMPS;
+      jumps = getValue('jumps');
       return false;
     }
     return true;
@@ -1063,10 +1061,10 @@ function draw() {
     textSize(64);
     textAlign(LEFT, TOP);
     fill(0, 100);
-    text(".".repeat(MAX_JUMPS), width / 2 - textWidth(".".repeat(MAX_JUMPS)) / 2, -20);
+    text(".".repeat(getValue('jumps')), width / 2 - textWidth(".".repeat(getValue('jumps'))) / 2, -20);
 
     fill(0);
-    text(".".repeat(jumps), width / 2 - textWidth(".".repeat(MAX_JUMPS)) / 2, -20);
+    text(".".repeat(jumps), width / 2 - textWidth(".".repeat(getValue('jumps'))) / 2, -20);
   }
 
   textAlign(RIGHT, BOTTOM);
