@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 4, PATCH_VERSION = 0;
-const PATCH_NAME = "The Full Shop Update";
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 0;
+const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
 
@@ -118,13 +118,13 @@ let upgrades = {
     factor: 1.5,
   },
   "money": {    
-    value: 0.5,
-    baseval: 0.5,
+    value: 0.6,
+    baseval: 0.6,
     incr: 0.2,
     level: 0,
-    price: 20000,
-    baseprice: 20000,
-    factor: 1.0,
+    price: 1000,
+    baseprice: 1000,
+    factor: 1.2,
   },
   "camera shake": {    
     value: 1,
@@ -146,7 +146,7 @@ let AUTOAIM_ENABLED = false;
 
 let autoaimOffset;
 
-let money = 10000000000;
+let money = 1000;
 let multiplier = 1;
 
 let comboAnim = 0, multAnim = 0;
@@ -284,7 +284,7 @@ let guns = {
     'range': 100,
     'damage': 200,
     'speed': 100,
-    'pen': 1,
+    'pen': 0.99,
     'power': 20,
     'spread': 0.1,
     'recoil': 32,
@@ -299,7 +299,7 @@ let guns = {
     'range': 100,
     'damage': 400,
     'speed': 100,
-    'pen': 1,
+    'pen': 0.99,
     'power': 20,
     'spread': 2,
     'recoil': 40,
@@ -359,7 +359,7 @@ let guns = {
     'range': 30,
     'damage': 1000,
     'speed': 60,
-    'pen': 2,
+    'pen': 0.99,
     'power': 0,
     'spread': 20,
     'recoil': 2,
@@ -373,6 +373,15 @@ let equippedGuns = [{name:'pistol', ammo: 16}, {name:'', ammo: 0}, {name:'', amm
 
 let enem = {
   'waterbottle': {
+    'image': undefined
+  },
+  'backpack': {
+    'image': undefined
+  },
+  'nathan': {
+    'image': undefined
+  },
+  'lock': {
     'image': undefined
   }
 }
@@ -518,13 +527,61 @@ let stocks = [
 
 let stockOpen = 0;
 
+let lastLoadedLevel = 0;
+let GENERATOR_SEED = 10;
+let gens = [
+  {
+    'walls': [
+      [2, 10, 1, 6],
+      [21, 10, 1, 6],
+      [2, 16, 6, 1],
+      [16, 16, 6, 1],
+      [8, 12, 8, 1]
+    ],
+    'spawns': [
+      [4, 14, 2, 1.2],
+      [12, 18, 0, 0.8],
+      [19, 14, 2, 1.2]
+    ]
+  },
+  {
+    'walls': [
+      [2, 16, 2, 1],
+      [6, 16, 2, 1],
+      [14, 16, 2, 1],
+      [18, 16, 2, 1],
+      [22, 16, 2, 1]
+    ],
+    'spawns': [
+      [12, 0, 2, 1.2],
+      [12, 18, 1, 0.8],
+    ]
+  },
+  {
+    'walls': [
+      [2, 4, 2, 2],
+      [8, 2, 2, 2],
+      [16, 8, 2, 2],
+      [14, 18, 2, 2],
+      [20, 14, 2, 2],
+    ],
+    'spawns': [
+      [12, 0, 1, 1.2],
+      [12, 18, 0, 0.8],
+    ]
+  }
+]
+
 function setup() {
   createCanvas(innerWidth, innerHeight);
 
   walls = [
     new Wall(-10000, 0, 1000000, 10000),
-    new Wall(-10000, -40000, 9000, 50000),
-    new Wall(-1000, -1000, 2000, 1000),
+    new Wall(-10000, -40000, 6500, 50000),
+    new Wall(-3500, -3000, 2000, 1000),
+    new Wall(-3500, -40000, 1000000, 37000),
+    new Wall(-1500, -3000, 1000, 1800),
+    new Wall(-3500, -1000, 4500, 1000),
     new Wall(1000, -900, 200, 900),
     new Wall(1200, -800, 200, 800),
     new Wall(1400, -700, 200, 700),
@@ -534,13 +591,14 @@ function setup() {
     new Wall(2200, -300, 200, 300),
     new Wall(2400, -200, 200, 200),
     new Wall(2600, -100, 200, 100),
-
-    new Wall(-800, -1200, 100, 100)
   ]
 
   nathans['standard']['image'] = loadImage("https://i.imgur.com/qNRBIvl.png");
   nathans['rufus']['image'] = loadImage("https://i.imgur.com/ehb9nsw.png");
   enem['waterbottle']['image'] = loadImage("https://i.imgur.com/FVKJteN.png");
+  enem['backpack']['image'] = loadImage("https://i.imgur.com/ldrErrs.png");
+  enem['lock']['image'] = loadImage("https://i.imgur.com/njvhkEa.png");
+  enem['nathan']['image'] = loadImage("https://i.imgur.com/e7cvRyz.png");
 
   shop['navButtons'] = [
     new ShopButton(0, 150, 200, 40, "Upgrades", () => {
@@ -691,7 +749,7 @@ function update() {
 
   nathanHeight = lerp(nathanHeight, nathanHeightTarget, 0.1);
   camera = createVector(lerp(camera.x, position.x, 0.2), lerp(camera.y, position.y, 0.2));
-  cameraShake = lerp(cameraShake, 0, 0.1);
+  cameraShake = lerp(cameraShake, 0, 0.1 / (1 + getValue('camera shake') * 0.01));
 
   comboAnim = lerp(comboAnim, 0, 0.1);
   multAnim = lerp(multAnim, isGrounded ? 0 : 1, 0.1);
@@ -815,14 +873,12 @@ function update() {
   position.x = newX;
   position.y = newY;  
 
-  if (nathanHeight < 0.001) {
-    nathanHeight = 0.001;
+  if (position.x < -500 && money < 1000000000) {
+    position.x = -500;
   }
 
-  if (keys['l']) {
-    for (let i = 0; i < 100; i++) {
-      enemies.push(new Enemy(3000 + i, -200, 0, 10));
-    }
+  if (nathanHeight < 0.001) {
+    nathanHeight = 0.001;
   }
 
   if (reloadTime >= 0) {
@@ -905,7 +961,7 @@ function update() {
       }
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 40) {
-      money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l)) / getValue("money"));
+      money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l) * (enemy.t == 1 ? 2 : 1)) / getValue("money"));
       velX = enemy.xv;
       nathanHeight = 0.8;
       velY = -random(5, 10);
@@ -937,13 +993,36 @@ function update() {
   if (frameCount % 60 == 0) {
     calcStock(frameCount);
   }
+
+
+  let level = floor(position.x / 2500);
+  if (level + 1 > lastLoadedLevel) {
+    loadLevel(level + 1);
+    lastLoadedLevel = level + 1;
+  }
+}
+
+function loadLevel(l) {
+  randomSeed(GENERATOR_SEED + l * 1000);
+  let gen = gens[floor(random(0, gens.length))];
+  console.log(gens.length);
+  gen['walls'].forEach(rectArr => {
+    walls.push(new Wall(l * 2500 + 300 + rectArr[0] * 100, -2000 + rectArr[1] * 100, rectArr[2] * 100, rectArr[3] * 100))
+  });
+
+  for (let i = 0; i < floor((pow(2, l / 32) + 5 + l / 16 ) * random(0.5, 2)); i++) {
+    let spawn = gen['spawns'][floor(random(0, gen['spawns'].length))];
+    let type = spawn[2];
+    let level = floor(max(min(exp(l / 64) * spawn[3] + pow(random(-2, 2), 2), 10), 1));
+    enemies.push(new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level));
+  }
 }
 
 function calcStock(frCount) {
   stocks.forEach(stock => {
     noiseSeed(stock.seed);
     stock['data'].shift();
-    let newData = (frCount / 10.0) * getValue('luck') + noise(frCount / 20000.0, 0) * 1000 + noise(frCount / 5000.0, 200) * 200 + noise(frCount / 2000.0, 400) * 50 + noise(frCount / 200.0) * 20 + noise(frCount);
+    let newData = (frCount / 400.0) * getValue('luck') + noise(frCount / 20000.0, 0) * 1000 + noise(frCount / 5000.0, 200) * 200 + noise(frCount / 2000.0, 400) * 50 + noise(frCount / 200.0) * 20 + noise(frCount);
     newData = max(1, newData);
     stock['data'].push(newData);
   });
@@ -1009,10 +1088,6 @@ function keyPressed() {
     shopOpen = !shopOpen;
   } else if (key == 'r') {
     reloadTime = floor(guns[currentGun]['reload'] / getValue("reload"));
-  } else if (key == 'p') {
-    for (let i = 0; i < 20; i++) {
-      enemies.push(new Enemy(3000 + 200 * i, -200, 0, floor(random(1, 11))));
-    }
   }
 
   if (key == '1') {
@@ -1067,7 +1142,7 @@ function mousePressed() {
       }
     }
   }
-  if (ammo == 0) {
+  if (ammo == 0 && reloadTime <= 0) {
     reloadTime = floor(guns[currentGun]['reload'] / getValue('reload'));
   }
 }
@@ -1146,6 +1221,12 @@ function draw() {
   push();
   translate(offset.x, offset.y);
 
+  fill(0);
+  textAlign(CENTER, CENTER);
+  noStroke();
+  textSize(400);
+  text(floor((position.x - 200) / 2500), floor((position.x - 200) / 2500) * 2500 + 1500, -250);
+
   stroke(0);
   strokeWeight(1);
   fill(255);
@@ -1164,6 +1245,28 @@ function draw() {
   localWalls.forEach(wall => {
     wall.draw();
   });
+
+  fill(0);
+  noStroke();
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text("Nathan's Lair", -700, -1300);
+
+  textSize(16);
+  text("$" + money.toLocaleString() + " / $1,000,000,000 (" + nf((money / 10000000), 0, 2) + "%)", -700, -1250);
+
+  if (money < 1000000000) {
+    stroke(0, 255, 255)
+    for (let i = 0; i <  5; i++) {
+      line(-532 + random(-5, 5), -1199, -532 + random(-5, 5), -1001);
+    }
+  }
+
+  stroke(0);
+  fill(0);
+  rect(-800, -1280, 200, 10);
+  fill(255);
+  rect(-800, -1280, min((money / 1000000000), 1) * 200, 10);
 
   enemies.forEach(enemy => {
     enemy.draw();
@@ -1199,7 +1302,6 @@ function draw() {
       textSize(particle['time'] * 4);
       textAlign(CENTER, CENTER);
       text(particle['text'], particle['x'], particle['y']);
-      console.log(particle['text']);
     }
   })
 
@@ -1414,7 +1516,6 @@ function randomBias(min, max, bias, inf) {
   let b = lerp(min, max, bias);
   let rnd = random(min, max);
   let mix = random() * inf;
-  console.log(rnd * (1 - mix) + b * mix);
   return rnd * (1 - mix) + b * mix;
 }
 
@@ -1555,22 +1656,22 @@ class Enemy {
     this.l = l;
     this.xv = 0;
     this.yv = 0;
-    this.speed = 160 - 10 * l;
+    this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 2 : 1));
     this.movedelay = this.speed;
-    this.maxHealth = floor(10 * exp(l - 1));
+    this.maxHealth = floor(10 * exp(l - 1)) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1));
     this.health = this.maxHealth;
     
     this.hLerp = 1;
   }
 
   update() {
-    if (this.movedelay < 0) {
+    if (this.movedelay <= 0) {
       if (position.x < this.x) {
-        this.xv = ((random(0, 10) < 1 ? -1 : 1) * random(-5, -15)) * 0.1 * this.l;
+        this.xv = ((random(0, 10) < 1 ? 1 : -1) * random(5, 15)) * 0.1 * this.l * (this.t == 2 ? 2: 1);
       } else {
-        this.xv = ((random(0, 10) < 1 ? -1 : 1) * random(5, 15)) * 0.1 * this.l;
+        this.xv = ((random(0, 10) < 1 ? 1 : -1) * random(5, 15)) * 0.1 * this.l * (this.t == 2 ? 2: 1);
       }
-      this.yv = random(2, 5) * (this.l + 2) * 0.5;
+      this.yv = random(2, 5) * (this.l + 2) * 0.5 * (this.t == 1 ? 0.5 : (this.t == 2 ? -2 : 1));;
       this.movedelay = this.speed + random(0, 30);
     } else {
       this.movedelay -= 1;
@@ -1602,7 +1703,14 @@ class Enemy {
     ellipse(this.x, this.y - 32, 64, 64);
 
     imageMode(CENTER);
-    image(enem['waterbottle']['image'], this.x, this.y - 32, 20, 50);
+    if (this.t == 0) {
+      image(enem['waterbottle']['image'], this.x, this.y - 32, 20, 50);
+    } else if (this.t == 1) {
+      image(enem['backpack']['image'], this.x, this.y - 32, 40, 40);
+    } else if (this.t == 2) {
+      image(enem['lock']['image'], this.x, this.y - 32, 40, 40);
+    }
+    
 
     strokeWeight(1);
     stroke(0);
@@ -1623,7 +1731,7 @@ class Enemy {
   }
 
   die() {
-    money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money"));
+    money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
     multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
     addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
 
