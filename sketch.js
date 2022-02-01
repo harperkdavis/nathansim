@@ -915,6 +915,12 @@ function update() {
     }
   }
 
+  if (keys['l'] && d5340dbe53de7c8912916a41d074ea92) {
+    for(let i = 0; i < 50; i++) {
+      enemies.push(new Enemy(3000 + 2 * i, -200, 0, 10));
+    }
+  }
+
   bullets.forEach(bullet => {
     bullet['time'] -= 1;
     enemies.forEach(enemy => {
@@ -1001,6 +1007,13 @@ function update() {
       if (wall.within(bullet['x'], bullet['y'])) {
         addParticles(4, 6, bullet['x'], bullet['y'], -4, 4, 2, 4);
         bullet['t'] = -1;
+      }
+    });
+    bullets.forEach(plbullet => {
+      if (dist(plbullet['x'], plbullet['y'], bullet['x'], bullet['y']) < 50) {
+        bullet['t'] = -1;
+        plbullet['t'] = -1;
+        addParticles(6, 8, bullet['x'], bullet['y'], -4, 4, -2, -4);
       }
     });
     addParticles(2, 4, bullet['x'], bullet['y'], -4, 4, 2, 4);
@@ -1727,7 +1740,7 @@ class Enemy {
     this.xv = 0;
     this.yv = 0;
     this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 2 : 1));
-    this.bulletspeed = (300 - 24 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
+    this.bulletspeed = (300 - 16 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
     this.movedelay = this.speed;
     this.shootdelay = this.bulletspeed;
     this.maxHealth = floor(10 * exp(l - 1) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1)));
@@ -1751,8 +1764,8 @@ class Enemy {
     }
     this.yv += GRAVITY * 2;
 
-    if (this.shootdelay <= 0 && this.l > 4) {
-      let angle = atan2(position.x - this.x, position.y - this.y);
+    if (this.shootdelay <= 0) {
+      let angle = atan2(position.x - this.x, position.y - 32 - this.y);
       enemyBullets.push({
         'x': this.x,
         'y': this.y,
