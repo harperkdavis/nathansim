@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 2;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 4;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
@@ -12,7 +12,7 @@ let nathans = {
   'standard': {
     'image': undefined,
   },
-  'rufus': {
+  'rufus': {  
     'image': undefined,
   }
 }
@@ -699,10 +699,10 @@ function setup() {
     let genWalls = [];
     let genSpawns = [];
 
-    let wallCount = floor(random(4, 12));
+    let wallCount = floor(random(2, 8));
     for (let j = 0; j < wallCount; j++) {
       let x = floor(random(0, 12));
-      let y = floor(random(0, 21));
+      let y = floor(random(0, 20));
       let w = floor(random(1, 12 - x));
       let h = floor(random(1, 21 - y));
       genWalls.push([x, y, w, h]);
@@ -1131,7 +1131,7 @@ function keyPressed() {
 
   if (key == 'q') {
     shopOpen = !shopOpen;
-  } else if (key == 'r') {
+  } else if (key == 'r' && reloadTime <= 0) {
     reloadTime = floor(guns[currentGun]['reload'] / getValue("reload"));
   }
 
