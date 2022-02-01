@@ -414,6 +414,7 @@ let shopPage = 0;
 let shopPos = -1000;
 
 let shop = {};
+let jumpCooldown = 0;
 
 let stocks = [
   {
@@ -704,7 +705,7 @@ function setup() {
     let genWalls = [];
     let genSpawns = [];
 
-    let wallCount = floor(random(2, 8));
+    let wallCount = floor(random(2, 6));
     for (let j = 0; j < wallCount; j++) {
       let x = floor(random(0, 12));
       let y = floor(random(0, 20));
@@ -777,6 +778,30 @@ function update() {
   ammoAnim = lerp(ammoAnim, ammo / floor(guns[currentGun]['maxAmmo'] * getValue('ammo')), 0.2);
 
   equippedGuns[currentGunSlot]['ammo'] = ammo;
+
+  if (jumps > 0 && keys[' '] && jumpCooldown <= 0) {
+    position.y -= 4;
+    let wallJumping = false;
+    localWalls.forEach(wall => {
+      if (wall.within(position.x - 34, position.y - 32)) {
+        velX = getValue('speed');
+        position.x += 4;
+        wallJumping = true;
+      }
+      if (wall.within(position.x + 34, position.y - 32)) {
+        velX = -getValue('speed');
+        position.x -= 4;
+        wallJumping = true;
+      }
+    });
+    velY = (-getValue('jump height') - (1 - nathanHeight) * 8);
+    
+    jumpCooldown = 10;
+    jumps--;
+  }
+  if (jumpCooldown > 0) {
+    jumpCooldown--;
+  }
 
   if (isGrounded) {
     multiplier = 1;
@@ -1080,11 +1105,13 @@ function loadLevel(l) {
     let level = floor(max(min(exp(l / 32) * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
     let newEnemy = new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level);
     
-    localWalls.forEach(wall => {
-      if (wall.within(newEnemy.x, newEnemy.y)) {
-        newEnemy.y = wall.y - 10;
-      }
-    });
+    for (let i = 0; i < 3; i++) {
+      localWalls.forEach(wall => {
+        if (wall.within(newEnemy.x, newEnemy.y)) {
+          newEnemy.y = wall.y - 10;
+        }
+      });
+    }
     enemies.push(newEnemy);
   }
 }
@@ -1133,26 +1160,6 @@ function keyPressed() {
       keylogger[keylogger.length - 1] == 's') {
         currentNathan = 'rufus';
       }
-  }
-
-  if (jumps > 0 && keys[' ']) {
-    position.y -= 4;
-    let wallJumping = false;
-    localWalls.forEach(wall => {
-      if (wall.within(position.x - 34, position.y - 32)) {
-        velX = getValue('speed');
-        position.x += 4;
-        wallJumping = true;
-      }
-      if (wall.within(position.x + 34, position.y - 32)) {
-        velX = -getValue('speed');
-        position.x -= 4;
-        wallJumping = true;
-      }
-    });
-    velY = (-getValue('jump height') - (1 - nathanHeight) * 8);
-    
-    jumps--;
   }
 
   if (key == 'q') {
@@ -1764,7 +1771,7 @@ class Enemy {
     this.xv = 0;
     this.yv = 0;
     this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 2 : 1));
-    this.bulletspeed = (300 - 16 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
+    this.bulletspeed = (300 - 10 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
     this.movedelay = this.speed;
     this.shootdelay = this.bulletspeed;
     this.maxHealth = floor(10 * exp(l - 1) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1)));
@@ -1788,7 +1795,7 @@ class Enemy {
     }
     this.yv += GRAVITY * 2;
 
-    if (this.shootdelay <= 0 && this.l < 4) {
+    if (this.shootdelay <= 0 && this.l >= 4) {
       let angle = atan2(position.x - this.x, position.y - 32 - this.y);
       enemyBullets.push({
         'x': this.x,
