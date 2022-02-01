@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 5;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 6;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
@@ -809,7 +809,7 @@ function update() {
   localWalls = [];
 
   walls.forEach(wall => {
-    if (!(wall.x > width && wall.x + wall.w < 0 && wall.y > height && wall.y + wall.h < 0)) {
+    if (!(wall.x > width * 2 && wall.x + wall.w < -width && wall.y > height * 2 && wall.y + wall.h < -height)) {
       localWalls.push(wall);
     }
   });
@@ -1767,6 +1767,10 @@ class Enemy {
         this.yv = abs(this.yv * 0.8);
       }
     });
+
+    if (dist(this.x, this.y, position.x, position.y) > 4000) {
+      this.health = -1;
+    }
 
     this.x += this.xv;
     this.y += this.yv;
