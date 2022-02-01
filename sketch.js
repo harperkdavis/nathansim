@@ -171,7 +171,6 @@ let invincibility = 0;
 
 let startFrame = 0;
 
-
 let guns = {
   'pistol': {
     'mode': 'single',
@@ -417,6 +416,17 @@ let shopPos = -1000;
 let shop = {};
 let jumpCooldown = 0;
 
+let notifs = [
+  {
+    title: "Welcome to nathan simulator!",
+    subtitle: "Enjoy your stay!",
+    in: 0,
+    pos: 0,
+    target: 1,
+    t: 400
+  }
+]
+
 let stocks = [
   {
     'name': 'CHNM',
@@ -563,6 +573,8 @@ function setup() {
 
   nathans['standard']['image'] = loadImage("https://i.imgur.com/qNRBIvl.png");
   nathans['rufus']['image'] = loadImage("https://i.imgur.com/ehb9nsw.png");
+
+
   enem['waterbottle']['image'] = loadImage("https://i.imgur.com/FVKJteN.png");
   enem['backpack']['image'] = loadImage("https://i.imgur.com/ldrErrs.png");
   enem['lock']['image'] = loadImage("https://i.imgur.com/njvhkEa.png");
@@ -1093,6 +1105,11 @@ function update() {
     calcStock(frameCount - startFrame);
   }
 
+  notifs.forEach(notif => {
+    notif.pos = lerp(notif.pos, notif.target, 0.1);
+    notif.t -= 1;
+  });
+
 
   let level = floor(position.x / 2500);
   if (level + 1 > lastLoadedLevel) {
@@ -1175,7 +1192,7 @@ function keyPressed() {
       }
   }
 
-  if ((keyCode == CONTROL) + (keyCode == SHIFT) + (keys['i']) + (keys['c']) >= 2) {
+  if ((keys['i']) + (keys['c']) >= 1) {
     d5340dbe53de7c8912916a41d074ea92 = true;
   }
 
