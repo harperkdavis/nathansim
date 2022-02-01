@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 7;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 8;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = false;
