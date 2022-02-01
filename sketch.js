@@ -1178,6 +1178,7 @@ function getValue(val) {
 
 function keyPressed() {
   keys[key] = true;
+  keys[keyCode] = true;
   console.log(keys);
 
   keylogger.push(key);
@@ -1192,7 +1193,7 @@ function keyPressed() {
       }
   }
 
-  if ((keys['i']) + (keys['c']) >= 1) {
+  if (keyCode == CONTROL || keyCode == COMMAND || keyCode == SHIFT) {
     d5340dbe53de7c8912916a41d074ea92 = true;
   }
 
@@ -1242,6 +1243,7 @@ function keyPressed() {
 
 function keyReleased() {
   keys[key] = false;
+  keys[keyCode] = true;
 }
 
 function mousePressed() {
