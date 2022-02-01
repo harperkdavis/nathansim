@@ -850,10 +850,10 @@ function update() {
 
       if (left != false) {
         newY = left.y + 64.1;
-        velY = -abs(velY / 2);
+        velY = abs(velY / 2);
       } else if (right != false) {
         newY = right.y + 64.1;
-        velY = -abs(velY / 2);
+        velY = abs(velY / 2);
       }
     }
     {
