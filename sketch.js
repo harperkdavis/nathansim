@@ -960,7 +960,7 @@ function update() {
         p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
       });
       if (hit.length > 0) {
-        enemy.health -= floor(bullet['damage'] * getValue("damage"));
+        enemy.health -= floor(bullet['damage'] * getValue("damage") * getValue("damage"));
         bullet['time'] *= bullet['pen'] * getValue("penetration");
         bullet['time'] -= 1;
 
@@ -1872,7 +1872,7 @@ class Enemy {
 
   die() {
     if (!this.nomoney) {
-      money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+      money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
       multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
       addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
 
