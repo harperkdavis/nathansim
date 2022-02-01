@@ -1465,7 +1465,7 @@ function draw() {
     textAlign(CENTER, CENTER);
     textSize(24 + sin(frameCount * 0.1) * 10);
     fill(255, 0, 0);
-    text("Cheater Mode", width / 2, 100);
+    text("Cheater Mode", width / 2, 120);
   }
 
   textAlign(RIGHT, BOTTOM);
