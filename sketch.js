@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 1;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 2;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
@@ -1711,7 +1711,7 @@ class Enemy {
     this.bulletspeed = (300 - 24 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
     this.movedelay = this.speed;
     this.shootdelay = this.bulletspeed;
-    this.maxHealth = floor(10 * exp(l - 1)) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1));
+    this.maxHealth = floor(10 * exp(l - 1) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1)));
     this.health = this.maxHealth;
     
     this.hLerp = 1;
