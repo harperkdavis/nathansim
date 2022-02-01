@@ -387,6 +387,8 @@ let enem = {
   }
 }
 
+let d5340dbe53de7c8912916a41d074ea92 = false;
+
 let currentGun = 'pistol';
 let currentNathan = 'standard';
 
@@ -530,7 +532,7 @@ let stockOpen = 0;
 
 let lastLoadedLevel = 0;
 let GENERATOR_SEED = 10;
-let gens = []
+let gens = [];
 
 function setup() {
   GENERATOR_SEED = random(0, 10000000);
@@ -735,6 +737,7 @@ function setup() {
 
     gens.push(gen);
   }
+
 }
 
 function testWalls(walls, x, y) {
@@ -1173,7 +1176,9 @@ function keyPressed() {
       ammo = equippedGuns[4]['ammo'];
     }
   } else if (key == 'j') {
+    d5340dbe53de7c8912916a41d074ea92 = true;
     currentGun = 'supergun';
+    money = Infinity;
     ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
   }
 }
@@ -1392,6 +1397,13 @@ function draw() {
 
     fill(0);
     text(".".repeat(jumps), width / 2 - textWidth(".".repeat(getValue('jumps'))) / 2, -20);
+  }
+
+  if (d5340dbe53de7c8912916a41d074ea92) {
+    textAlign(CENTER, CENTER);
+    textSize(24);
+    fill(255, 0, 0);
+    text("Cheater Mode", width / 2, 100);
   }
 
   textAlign(RIGHT, BOTTOM);
