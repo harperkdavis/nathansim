@@ -629,6 +629,7 @@ function setup() {
   ]
 
   shop['upgradePurchase'] = [];
+  shop['upgrade']
 
   let i = 0;
   Object.keys(upgrades).forEach(key => {
@@ -767,7 +768,7 @@ function update() {
 
   nathanHeight = lerp(nathanHeight, nathanHeightTarget, 0.1);
   camera = createVector(lerp(camera.x, position.x, 0.2), lerp(camera.y, position.y, 0.2));
-  cameraShake = lerp(cameraShake, 0, 0.1 / (1 + getValue('camera shake') * 0.01));
+  cameraShake = lerp(cameraShake, 0, 0.1 / (1 + getValue('camera shake') * 0.0001));
 
   comboAnim = lerp(comboAnim, 0, 0.1);
   multAnim = lerp(multAnim, isGrounded ? 0 : 1, 0.1);
@@ -1053,7 +1054,7 @@ function update() {
 
   aim = atan2(aimX - camera.x, aimY - camera.y + 32);
   
-  if (frameCount - startFrame % 60 == 0) {
+  if ((frameCount - startFrame) % 60 == 0) {
     calcStock(frameCount - startFrame);
   }
 
