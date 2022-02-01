@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 8;
-const PATCH_NAME = "The World Generation Update";
+const MAJOR_VERSION = 0, MINOR_VERSION = 6, PATCH_VERSION = 0;
+const PATCH_NAME = "Cheater Mode Upgrade";
 
 let inMainMenu = false;
 
@@ -390,6 +390,7 @@ let enem = {
 }
 
 let d5340dbe53de7c8912916a41d074ea92 = false;
+let bd5490f1dfa716689492d073e22e1d93 = false;
 
 let currentGun = 'pistol';
 let currentNathan = 'standard';
@@ -758,6 +759,11 @@ function windowResized() {
 }
 
 function update() {
+
+  if (d5340dbe53de7c8912916a41d074ea92 || bd5490f1dfa716689492d073e22e1d93) {
+    d5340dbe53de7c8912916a41d074ea92 = true;
+    bd5490f1dfa716689492d073e22e1d93 = true;
+  }
 
   if (!AUTOAIM_ENABLED) {
     aimX = mouseX - width / 2 + camera.x + (camera.x - position.x);
@@ -1160,6 +1166,10 @@ function keyPressed() {
       keylogger[keylogger.length - 1] == 's') {
         currentNathan = 'rufus';
       }
+  }
+
+  if ((keyCode == CONTROL) + (keyCode == SHIFT) + (keys['i']) + (keys['c']) >= 2) {
+    d5340dbe53de7c8912916a41d074ea92 = true;
   }
 
   if (key == 'q') {
