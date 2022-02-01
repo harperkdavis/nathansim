@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 6;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 7;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
@@ -168,6 +168,8 @@ let ammoAnim = 1;
 
 let reloadTime = 0;
 let invincibility = 0;
+
+let startFrame = 0;
 
 
 let guns = {
@@ -1051,8 +1053,8 @@ function update() {
 
   aim = atan2(aimX - camera.x, aimY - camera.y + 32);
   
-  if (frameCount % 60 == 0) {
-    calcStock(frameCount);
+  if (frameCount - startFrame % 60 == 0) {
+    calcStock(frameCount - startFrame);
   }
 
 
@@ -1268,11 +1270,32 @@ function addTextParticle(count, size, x, y, xv, xvm, yv, yvm, text, r, g, b) {
   }
 }
 
+function startGame() {
+  startFrame = frameCount;
+}
+
 function draw() {
+  background(250);
+  if (inMainMenu) {
+
+    textAlign(CENTER, CENTER);
+    textSize(64);
+    text("Nathan Simulator", width / 2, height / 2 - 200);
+
+    textSize(16);
+    text("game of the year edition", width / 2, height / 2 - 160);
+
+    imageMode(CENTER);
+    image(nathans[currentNathan]['standard'], width / 2, height / 2);
+    text(titleCase(currentNathan), width / 2, height / 2 + 100);
+
+    return;
+  }
+
+
   noCursor();
   
   update();
-  background(250);
 
   let offset = createVector(width / 2 - camera.x + random(cameraShake, -cameraShake), height / 2 - camera.y + random(cameraShake, -cameraShake));
 
@@ -1764,7 +1787,7 @@ class Enemy {
     }
     this.yv += GRAVITY * 2;
 
-    if (this.shootdelay <= 0) {
+    if (this.shootdelay <= 0 && this.l < 4) {
       let angle = atan2(position.x - this.x, position.y - 32 - this.y);
       enemyBullets.push({
         'x': this.x,
