@@ -1722,6 +1722,7 @@ class Enemy {
     this.health = this.maxHealth;
     
     this.hLerp = 1;
+    this.nomoney = false;
   }
 
   update() {
@@ -1768,8 +1769,9 @@ class Enemy {
       }
     });
 
-    if (dist(this.x, this.y, position.x, position.y) > 4000) {
+    if (dist(this.x, this.y, position.x, position.y) > 6000) {
       this.health = -1;
+      this.nomoney = true;
     }
 
     this.x += this.xv;
@@ -1813,11 +1815,13 @@ class Enemy {
   }
 
   die() {
-    money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
-    multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
-    addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
+    if (!this.nomoney) {
+      money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+      multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
+      addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
 
-    comboAnim += 1;
+      comboAnim += 1;
+    }
   }
 
 }
