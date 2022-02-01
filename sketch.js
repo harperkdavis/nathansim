@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 4;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 5;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
@@ -19,8 +19,8 @@ let nathans = {
 
 let upgrades = {
   "speed": {
-    value: 5,
-    baseval: 5,
+    value: 6,
+    baseval: 6,
     incr: 0.5,
     level: 0,
     price: 1000,
@@ -41,8 +41,8 @@ let upgrades = {
     baseval: 1,
     incr: 1,
     level: 0,
-    price: 1000000,
-    baseprice: 1000000,
+    price: 100000,
+    baseprice: 100000,
     factor: 1,
   },
   "air control": {    
@@ -68,17 +68,17 @@ let upgrades = {
     baseval: 1,
     incr: 0.3,
     level: 0,
-    price: 100000,
-    baseprice: 100000,
+    price: 20000,
+    baseprice: 20000,
     factor: 0.5,
   },
   "precision": {    
     value: 1,
     baseval: 1,
-    incr: 0.5,
+    incr: 0.25,
     level: 0,
-    price: 400000,
-    baseprice: 400000,
+    price: 4000,
+    baseprice: 4000,
     factor: 0.4,
   },
   "reload": {    
@@ -104,8 +104,8 @@ let upgrades = {
     baseval: 1,
     incr: 0.2,
     level: 0,
-    price: 100000,
-    baseprice: 100000,
+    price: 10000,
+    baseprice: 10000,
     factor: 0.4,
   },
   "luck": {    
@@ -118,8 +118,8 @@ let upgrades = {
     factor: 0.7,
   },
   "money": {    
-    value: 0.6,
-    baseval: 0.6,
+    value: 1.2,
+    baseval: 1.2,
     incr: 0.2,
     level: 0,
     price: 1000,
@@ -718,15 +718,17 @@ function setup() {
     }
     genSpawns.push([12, 18, floor(random(0, 2)), 1]);
     
-    let spX = floor(random(0, 12)) + 0.5;
-    let spY = floor(random(0, 20)) + 0.5;
-    while(testWalls(genWalls, spX, spY)) {
-      spX = floor(random(0, 12)) + 0.5;
-      spY = floor(random(0, 20)) + 0.5;
-    }
+    for (let i = 0; i < random(1, 4); i++) {
+      let spX = floor(random(0, 12)) + 0.5;
+      let spY = floor(random(0, 20)) + 0.5;
+      while(testWalls(genWalls, spX, spY)) {
+        spX = floor(random(0, 12)) + 0.5;
+        spY = floor(random(0, 20)) + 0.5;
+      }
 
-    genSpawns.push([spX, spY, floor(random(0, 3)), random(0.8, 1.2)]);
-    genSpawns.push([24 - spX, spY, floor(random(0, 3)), random(0.8, 1.2)]);
+      genSpawns.push([spX, spY, floor(random(0, 3)), random(0.8, 1.2)]);
+      genSpawns.push([24 - spX, spY, floor(random(0, 3)), random(0.8, 1.2)]);
+    }
 
     gen['spawns'] = genSpawns;
     gen['walls'] = genWalls;
@@ -1015,8 +1017,6 @@ function update() {
     bullet['t'] -= 1;
   });
 
-  console.log(enemyBullets);
-
   enemyBullets = enemyBullets.filter(bullet => {
     if (bullet['t'] <= 0) {
       return false;
@@ -1055,11 +1055,18 @@ function loadLevel(l) {
     walls.push(new Wall(l * 2500 + 300 + rectArr[0] * 100, -2000 + rectArr[1] * 100, rectArr[2] * 100, rectArr[3] * 100))
   });
 
-  for (let i = 0; i < floor((pow(2, l / 32) + 10 + l / 16 ) * random(1, 2)); i++) {
+  for (let i = 0; i < floor((pow(2, l / 24) + 10 + l / 12) * random(1, 2)); i++) {
     let spawn = gen['spawns'][floor(random(0, gen['spawns'].length))];
     let type = spawn[2];
     let level = floor(max(min(exp(l / 64) * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
-    enemies.push(new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level));
+    let newEnemy = new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level);
+    
+    walls.forEach(wall => {
+      if (wall.within(newEnemy.x, newEnemy.y)) {
+        newEnemy.y = wall.y - 10;
+      }
+    });
+    enemies.push(newEnemy);
   }
 }
 
