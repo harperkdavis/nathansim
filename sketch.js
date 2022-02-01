@@ -1193,7 +1193,7 @@ function keyPressed() {
       }
   }
 
-  if (keyCode == CONTROL || keyCode == COMMAND || keyCode == SHIFT) {
+  if (keyCode == CONTROL || keyCode == SHIFT) {
     d5340dbe53de7c8912916a41d074ea92 = true;
   }
 
