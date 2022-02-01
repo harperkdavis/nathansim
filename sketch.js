@@ -1133,6 +1133,9 @@ function calcStock(frCount) {
 }
 
 function buyStock(index, count) {
+  if (money <= 0) {
+    return;
+  }
   let stock = stocks[index];
   if (money >= stock['data'][99] * count) {
     stock['shares'] += count;
@@ -1433,7 +1436,7 @@ function draw() {
   text("$" + money.toLocaleString("en-US"), 8, 50);
 
   textSize(24);
-  text("Nathan Simulator", 8, 4);
+  text(d5340dbe53de7c8912916a41d074ea92 ? "Cheater Simulator" : "Nathan Simulator", 8, 4);
 
   textSize(12);
   text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
@@ -1454,8 +1457,9 @@ function draw() {
   }
 
   if (d5340dbe53de7c8912916a41d074ea92) {
+    document.title = "Cheater SIMULATOR";
     textAlign(CENTER, CENTER);
-    textSize(24);
+    textSize(24 + sin(frameCount * 0.1) * 10);
     fill(255, 0, 0);
     text("Cheater Mode", width / 2, 100);
   }
