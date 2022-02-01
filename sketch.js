@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 6, PATCH_VERSION = 0;
+const MAJOR_VERSION = 0, MINOR_VERSION = 6, PATCH_VERSION = 1;
 const PATCH_NAME = "Cheater Mode Upgrade";
 
 let inMainMenu = false;
@@ -1016,7 +1016,9 @@ function update() {
       }
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 60) {
-      money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l) * (enemy.t == 1 ? 2 : 1)) / getValue("money"));
+      let moneyLoss = floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l)) / getValue("money"));
+      money -= moneyLoss;
+      addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
       velX = enemy.xv;
       nathanHeight = 0.8;
       velY = -random(5, 10);
@@ -1052,7 +1054,9 @@ function update() {
     });
     addParticles(2, 4, bullet['x'], bullet['y'], -4, 4, 2, 4);
     if (invincibility <= 0 && dist(position.x, position.y, bullet['x'], bullet['y']) < 60) {
-      money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, bullet['l'])) / getValue("money"));
+      let moneyLoss = floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, bullet['l'])) / getValue("money"));
+      money -= moneyLoss;
+      addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
       velX = bullet['xv'];
       nathanHeight = 0.8;
       velY = -random(5, 10);
@@ -1886,8 +1890,10 @@ class Enemy {
 
   die() {
     if (!this.nomoney) {
-      money += floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+      let moneyAmount = floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+      money += moneyAmount;
       multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
+      addTextParticle(1, 12, this.x, this.y, -2, 2, -8, -12, "+$" + moneyAmount.toLocaleString(), 0, 0, 0);
       addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
 
       comboAnim += 1;
