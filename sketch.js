@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 0;
+const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 1;
 const PATCH_NAME = "The World Generation Update";
 
 let inMainMenu = true;
@@ -25,7 +25,7 @@ let upgrades = {
     level: 0,
     price: 1000,
     baseprice: 1000,
-    factor: 0.5,
+    factor: 0.3,
   },
   "jump height": {    
     value: 7,
@@ -34,7 +34,7 @@ let upgrades = {
     level: 0,
     price: 2000,
     baseprice: 2000,
-    factor: 0.5,
+    factor: 0.4,
   },
   "jumps": {    
     value: 1,
@@ -61,7 +61,7 @@ let upgrades = {
     level: 0,
     price: 100,
     baseprice: 100,
-    factor: 0.5,
+    factor: 0.4,
   },
   "penetration": {    
     value: 1,
@@ -70,7 +70,7 @@ let upgrades = {
     level: 0,
     price: 100000,
     baseprice: 100000,
-    factor: 0.7,
+    factor: 0.5,
   },
   "precision": {    
     value: 1,
@@ -79,7 +79,7 @@ let upgrades = {
     level: 0,
     price: 400000,
     baseprice: 400000,
-    factor: 0.6,
+    factor: 0.4,
   },
   "reload": {    
     value: 0.5,
@@ -97,7 +97,7 @@ let upgrades = {
     level: 0,
     price: 2000,
     baseprice: 2000,
-    factor: 1.6,
+    factor: 0.6,
   },
   "ammo": {    
     value: 1,
@@ -106,16 +106,16 @@ let upgrades = {
     level: 0,
     price: 100000,
     baseprice: 100000,
-    factor: 0.6,
+    factor: 0.4,
   },
   "luck": {    
     value: 1,
     baseval: 1,
     incr: 0.1,
     level: 0,
-    price: 100,
-    baseprice: 100,
-    factor: 1.5,
+    price: 1000,
+    baseprice: 1000,
+    factor: 0.7,
   },
   "money": {    
     value: 0.6,
@@ -124,7 +124,7 @@ let upgrades = {
     level: 0,
     price: 1000,
     baseprice: 1000,
-    factor: 1.2,
+    factor: 0.3,
   },
   "camera shake": {    
     value: 1,
@@ -160,6 +160,7 @@ let bullets = [];
 let particles = [];
 
 let enemies = [];
+let enemyBullets = [];
 
 let lastShot = -100000;
 let ammo = 12;
@@ -529,57 +530,18 @@ let stockOpen = 0;
 
 let lastLoadedLevel = 0;
 let GENERATOR_SEED = 10;
-let gens = [
-  {
-    'walls': [
-      [2, 10, 1, 6],
-      [21, 10, 1, 6],
-      [2, 16, 6, 1],
-      [16, 16, 6, 1],
-      [8, 12, 8, 1]
-    ],
-    'spawns': [
-      [4, 14, 2, 1.2],
-      [12, 18, 0, 0.8],
-      [19, 14, 2, 1.2]
-    ]
-  },
-  {
-    'walls': [
-      [2, 16, 2, 1],
-      [6, 16, 2, 1],
-      [14, 16, 2, 1],
-      [18, 16, 2, 1],
-      [22, 16, 2, 1]
-    ],
-    'spawns': [
-      [12, 0, 2, 1.2],
-      [12, 18, 1, 0.8],
-    ]
-  },
-  {
-    'walls': [
-      [2, 4, 2, 2],
-      [8, 2, 2, 2],
-      [16, 8, 2, 2],
-      [14, 18, 2, 2],
-      [20, 14, 2, 2],
-    ],
-    'spawns': [
-      [12, 0, 1, 1.2],
-      [12, 18, 0, 0.8],
-    ]
-  }
-]
+let gens = []
 
 function setup() {
+  GENERATOR_SEED = random(0, 10000000);
+  randomSeed(GENERATOR_SEED);
   createCanvas(innerWidth, innerHeight);
 
   walls = [
     new Wall(-10000, 0, 1000000, 10000),
     new Wall(-10000, -40000, 6500, 50000),
     new Wall(-3500, -3000, 2000, 1000),
-    new Wall(-3500, -40000, 1000000, 37000),
+    new Wall(-3500, -40000, 3000, 37000),
     new Wall(-1500, -3000, 1000, 1800),
     new Wall(-3500, -1000, 4500, 1000),
     new Wall(1000, -900, 200, 900),
@@ -731,6 +693,55 @@ function setup() {
   for (let i = 0; i < 101; i++) {
     calcStock((100 - i) * -60);
   }
+  randomSeed(GENERATOR_SEED);
+  for (let i = 0; i < 16; i++) {
+    let gen = {};
+    let genWalls = [];
+    let genSpawns = [];
+
+    let wallCount = floor(random(4, 12));
+    for (let j = 0; j < wallCount; j++) {
+      let x = floor(random(0, 12));
+      let y = floor(random(0, 21));
+      let w = floor(random(1, 12 - x));
+      let h = floor(random(1, 21 - y));
+      genWalls.push([x, y, w, h]);
+    }
+
+    for (let j = 0; j < wallCount; j++) {
+      let wall = genWalls[j];
+      let x = 24 - wall[0] - wall[2];
+      let y = wall[1];
+      let w = wall[2];
+      let h = wall[3];
+      genWalls.push([x, y, w, h]);
+    }
+    genSpawns.push([12, 18, floor(random(0, 2)), 1]);
+    
+    let spX = floor(random(0, 12)) + 0.5;
+    let spY = floor(random(0, 20)) + 0.5;
+    while(testWalls(genWalls, spX, spY)) {
+      spX = floor(random(0, 12)) + 0.5;
+      spY = floor(random(0, 20)) + 0.5;
+    }
+
+    genSpawns.push([spX, spY, floor(random(0, 3)), random(0.8, 1.2)]);
+    genSpawns.push([24 - spX, spY, floor(random(0, 3)), random(0.8, 1.2)]);
+
+    gen['spawns'] = genSpawns;
+    gen['walls'] = genWalls;
+
+    gens.push(gen);
+  }
+}
+
+function testWalls(walls, x, y) {
+  walls.forEach(wall => {
+    if (isWithin(x, y, wall[0], wall[1], wall[2], wall[3])) {
+      return true;
+    }
+  });
+  return false;
 }
 
 function windowResized() {
@@ -844,7 +855,6 @@ function update() {
 
       if (right != false) {
         newX = right.x - 32.1;
-        nathanHeight += velY * 0.04;
         velX = 0;
         jumps = getValue("jumps");
       } else if (top != false) {
@@ -960,7 +970,7 @@ function update() {
         autoaimed = true;
       }
     }
-    if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 40) {
+    if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 60) {
       money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l) * (enemy.t == 1 ? 2 : 1)) / getValue("money"));
       velX = enemy.xv;
       nathanHeight = 0.8;
@@ -978,6 +988,41 @@ function update() {
     autoaimOffset = createVector(0, 0);
   }
   invincibility--;
+
+  enemyBullets.forEach(bullet => {
+    bullet['x'] += bullet['xv'];
+    bullet['y'] += bullet['yv'];
+    walls.forEach(wall => {
+      if (wall.within(bullet['x'], bullet['y'])) {
+        addParticles(4, 6, bullet['x'], bullet['y'], -4, 4, 2, 4);
+        bullet['t'] = -1;
+      }
+    });
+    addParticles(2, 4, bullet['x'], bullet['y'], -4, 4, 2, 4);
+    if (invincibility <= 0 && dist(position.x, position.y, bullet['x'], bullet['y']) < 60) {
+      money -= floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, bullet['l'])) / getValue("money"));
+      velX = bullet['xv'];
+      nathanHeight = 0.8;
+      velY = -random(5, 10);
+      position.y -= 4;
+      invincibility = 20;
+      cameraShake = 10 * getValue('camera shake');
+      
+      multiplier = ((multiplier - 1) / 2) + 1;
+      multAnim = 0.5;
+      bullet['t'] = 0;
+    }
+    bullet['t'] -= 1;
+  });
+
+  console.log(enemyBullets);
+
+  enemyBullets = enemyBullets.filter(bullet => {
+    if (bullet['t'] <= 0) {
+      return false;
+    }
+    return true;
+  });
   
   enemies = enemies.filter(enemy => {
     if (enemy.health <= 0) {
@@ -1010,10 +1055,10 @@ function loadLevel(l) {
     walls.push(new Wall(l * 2500 + 300 + rectArr[0] * 100, -2000 + rectArr[1] * 100, rectArr[2] * 100, rectArr[3] * 100))
   });
 
-  for (let i = 0; i < floor((pow(2, l / 32) + 5 + l / 16 ) * random(0.5, 2)); i++) {
+  for (let i = 0; i < floor((pow(2, l / 32) + 10 + l / 16 ) * random(1, 2)); i++) {
     let spawn = gen['spawns'][floor(random(0, gen['spawns'].length))];
     let type = spawn[2];
-    let level = floor(max(min(exp(l / 64) * spawn[3] + pow(random(-2, 2), 2), 10), 1));
+    let level = floor(max(min(exp(l / 64) * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
     enemies.push(new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level));
   }
 }
@@ -1270,6 +1315,12 @@ function draw() {
 
   enemies.forEach(enemy => {
     enemy.draw();
+  });
+
+  fill(255);
+  stroke(0);
+  enemyBullets.forEach(bullet => {
+    ellipse(bullet['x'], bullet['y'], 20, 20);
   });
 
   stroke(0);
@@ -1657,7 +1708,9 @@ class Enemy {
     this.xv = 0;
     this.yv = 0;
     this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 2 : 1));
+    this.bulletspeed = (300 - 24 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
     this.movedelay = this.speed;
+    this.shootdelay = this.bulletspeed;
     this.maxHealth = floor(10 * exp(l - 1)) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1));
     this.health = this.maxHealth;
     
@@ -1669,7 +1722,7 @@ class Enemy {
       if (position.x < this.x) {
         this.xv = ((random(0, 10) < 1 ? 1 : -1) * random(5, 15)) * 0.1 * this.l * (this.t == 2 ? 2: 1);
       } else {
-        this.xv = ((random(0, 10) < 1 ? 1 : -1) * random(5, 15)) * 0.1 * this.l * (this.t == 2 ? 2: 1);
+        this.xv = ((random(0, 10) < 1 ? -1 : 1) * random(5, 15)) * 0.1 * this.l * (this.t == 2 ? 2: 1);
       }
       this.yv = random(2, 5) * (this.l + 2) * 0.5 * (this.t == 1 ? 0.5 : (this.t == 2 ? -2 : 1));;
       this.movedelay = this.speed + random(0, 30);
@@ -1677,6 +1730,21 @@ class Enemy {
       this.movedelay -= 1;
     }
     this.yv += GRAVITY * 2;
+
+    if (this.shootdelay <= 0 && this.l > 4) {
+      let angle = atan2(position.x - this.x, position.y - this.y);
+      enemyBullets.push({
+        'x': this.x,
+        'y': this.y,
+        'xv': sin(angle) * 10,
+        'yv': cos(angle) * 10,
+        'l': this.l,
+        't': 200,
+      });
+      this.shootdelay = this.bulletspeed;
+    } else {
+      this.shootdelay -= 1;
+    }
 
     walls.forEach(wall => {
       if (wall.within(this.x + this.xv + 32, this.y)) {
@@ -1687,6 +1755,9 @@ class Enemy {
       }
       if (wall.within(this.x + this.xv, this.y + this.yv)) {
         this.yv = -abs(this.yv * 0.8);
+      }
+      if (wall.within(this.x, this.y + this.yv - 32)) {
+        this.yv = abs(this.yv * 0.8);
       }
     });
 
