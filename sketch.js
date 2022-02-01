@@ -994,7 +994,7 @@ function update() {
   enemyBullets.forEach(bullet => {
     bullet['x'] += bullet['xv'];
     bullet['y'] += bullet['yv'];
-    walls.forEach(wall => {
+    localWalls.forEach(wall => {
       if (wall.within(bullet['x'], bullet['y'])) {
         addParticles(4, 6, bullet['x'], bullet['y'], -4, 4, 2, 4);
         bullet['t'] = -1;
@@ -1061,7 +1061,7 @@ function loadLevel(l) {
     let level = floor(max(min(exp(l / 32) * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
     let newEnemy = new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level);
     
-    walls.forEach(wall => {
+    localWalls.forEach(wall => {
       if (wall.within(newEnemy.x, newEnemy.y)) {
         newEnemy.y = wall.y - 10;
       }
