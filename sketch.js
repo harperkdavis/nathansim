@@ -1,7 +1,7 @@
 const MAJOR_VERSION = 0, MINOR_VERSION = 5, PATCH_VERSION = 7;
 const PATCH_NAME = "The World Generation Update";
 
-let inMainMenu = true;
+let inMainMenu = false;
 
 let sfx = {
   'shoot': undefined,
