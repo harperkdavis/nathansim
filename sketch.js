@@ -1,5 +1,5 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 7, PATCH_VERSION = 0;
-const PATCH_NAME = "GIANT Optimization & Fixes Patch";
+const MAJOR_VERSION = 1, MINOR_VERSION = 0, PATCH_VERSION = 0;
+const PATCH_NAME = "The Real Nathan Experience";
 
 let NSG = {
   localHttpProxy: 2000,
@@ -7,11 +7,34 @@ let NSG = {
   netsurferIp: "127.0.0.1",
   apiKey: 1519750495123,
   hashpileToken: "f51241ab6c89e2baf1"
-  // ok good nathan is gone!
+  // ok good nathan chen is gone!
 
 }
 
 let inMainMenu = true;
+let wonTheGame = false;
+let stopTime = 0;
+let wonLerp = 0;
+let wonBackpack;
+
+let cutscene = {
+  transBackpack: undefined,
+  letterbox: 1,
+}
+let announcedGoBack = false;
+let battlingNathan = false;
+let battleCutsceneFrames = 1800;
+
+let stats = {
+  "damage done": 0,
+  "enemies killed": 0,
+  "money earned": 0,
+  "money spent": 0,
+  "money lost": 0,
+  "upgrades purchased": 0,
+  "bullets fired": 0,
+  "times reloaded": 0,
+}
 
 let sfx = {
   'shoot': undefined,
@@ -58,7 +81,7 @@ let upgrades = {
   "air control": {    
     value: 1,
     baseval: 1,
-    incr: 0.1,
+    incr: 0.05,
     level: 0,
     price: 500,
     baseprice: 500,
@@ -173,7 +196,7 @@ let enemies = [];
 let enemyBullets = [];
 
 let lastShot = -100000;
-let ammo = 12;
+let ammo = 16;
 let ammoAnim = 1;
 
 let reloadTime = 0;
@@ -545,11 +568,26 @@ let stocks = [
 
 let stockOpen = 0;
 
+let selfDestructTimer = 1000;
+
 let lastLoadedLevel = 0;
 let GENERATOR_SEED = 10;
 let gens = [];
 
+let nathanBoss = {
+  x: -100,
+  y: -1000,
+  xv: 0,
+  yv: 0,
+  health: 1000000,
+  hLerp: 0,
+  dLerp: 0,
+  height: 1,
+  t: 0
+}
+
 function loadSave() {
+  /*
   let lastSave = localStorage.getItem("lastSave");
   if (lastSave == undefined) {
     localStorage.setItem("lastSave", Date.now());
@@ -557,6 +595,7 @@ function loadSave() {
   } else {
     notify("Save loaded!", "Found local save!");
   }
+  */
 }
 
 function setup() {
@@ -567,12 +606,12 @@ function setup() {
   loadSave();
 
   walls = [
-    new Wall(-10000, 0, 1000000, 10000),
-    new Wall(-10000, -40000, 6500, 50000),
-    new Wall(-3500, -3000, 2000, 1000),
-    new Wall(-3500, -40000, 3000, 37000),
+    new Wall(-9500, 0, 1000000, 10000),
+    new Wall(-9500, -40000, 6500, 50000),
+    new Wall(-3000, -3000, 1500, 1000),
+    new Wall(-3000, -40000, 2500, 37000),
     new Wall(-1500, -3000, 1000, 1800),
-    new Wall(-3500, -1000, 4500, 1000),
+    new Wall(-3000, -1000, 4000, 1000),
     new Wall(1000, -900, 200, 900),
     new Wall(1200, -800, 200, 800),
     new Wall(1400, -700, 200, 700),
@@ -583,6 +622,8 @@ function setup() {
     new Wall(2400, -200, 200, 200),
     new Wall(2600, -100, 200, 100),
   ]
+
+  cutscene.transBackpack = loadImage("https://i.imgur.com/8gCLOCM.png");
 
   nathans['standard']['image'] = loadImage("https://i.imgur.com/qNRBIvl.png");
   nathans['rufus']['image'] = loadImage("https://i.imgur.com/ehb9nsw.png");
@@ -664,9 +705,11 @@ function setup() {
     shop['upgradePurchase'].push(new ShopButton(10, 220 + 35 * i, 140, 30, toTitleCase(key), () => {
       if (money >= upg['price']) {
         money -= floor(upg['price']);
+        stats['money spent'] += floor(upg['price']);
         upg['level'] += 1;
         upg['value'] = upg['baseval'] + upg['incr'] * upg['level'];
         upg['price'] = floor(upg['baseprice'] * exp(upg['level'] * upg['factor']));
+        stats['upgrades purchased'] += 1;
       }
     }));
     shop['upgradePurchase'][i]['upgkey'] = key;
@@ -681,6 +724,7 @@ function setup() {
     shop['gunPurchase'].push(new ShopButton(10, 220 + 35 * j, 500, 30, toTitleCase(key) + " ($" + gun['price'].toLocaleString() + ")", () => {
       if (money >= gun['price']) {
         money -= gun['price'];
+        stats['money spent'] += gun['price'];
         ownedGuns.push(key);
       }
     }));
@@ -713,9 +757,10 @@ function setup() {
 
   enemies = [];
 
-  position = createVector(0, -1200);
-  camera = createVector(0, 0);
+  position = createVector(400, -1000);
+  camera = createVector(400, -1000);
   autoaimOffset = createVector(0, 0);
+  wonBackpack = createVector(0, 0);
 
   stocks.forEach(stock => {
     stock['seed'] = floor(random(0, 1000000));
@@ -768,6 +813,8 @@ function setup() {
     gens.push(gen);
   }
 
+  noCursor();
+
 }
 
 function testWalls(walls, x, y) {
@@ -782,6 +829,17 @@ function testWalls(walls, x, y) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
+/*
+ /$$   /$$ /$$$$$$$  /$$$$$$$   /$$$$$$  /$$$$$$$$ /$$$$$$$$
+| $$  | $$| $$__  $$| $$__  $$ /$$__  $$|__  $$__/| $$_____/
+| $$  | $$| $$  \ $$| $$  \ $$| $$  \ $$   | $$   | $$      
+| $$  | $$| $$$$$$$/| $$  | $$| $$$$$$$$   | $$   | $$$$$   
+| $$  | $$| $$____/ | $$  | $$| $$__  $$   | $$   | $$__/   
+| $$  | $$| $$      | $$  | $$| $$  | $$   | $$   | $$      
+|  $$$$$$/| $$      | $$$$$$$/| $$  | $$   | $$   | $$$$$$$$
+ \______/ |__/      |_______/ |__/  |__/   |__/   |________/
+*/
+
 
 function update() {
   updateNotifs();
@@ -790,6 +848,8 @@ function update() {
     d5340dbe53de7c8912916a41d074ea92 = true;
     bd5490f1dfa716689492d073e22e1d93 = true;
   }
+
+  let time = frameCount - startFrame;
 
   if (!AUTOAIM_ENABLED) {
     aimX = mouseX - width / 2 + camera.x + (camera.x - position.x);
@@ -809,9 +869,240 @@ function update() {
   shopPos = lerp(shopPos, shopOpen ? 0 : -1000, 0.1);
   ammoAnim = lerp(ammoAnim, ammo / floor(guns[currentGun]['maxAmmo'] * getValue('ammo')), 0.2);
 
+  localWalls = [];
+
+  walls.forEach(wall => {
+    if(isWithinCamera(wall.x, wall.y, wall.w, wall.h, width)) {
+      localWalls.push(wall);
+    }
+  });
+  
+  if (time == 1) {
+    notify("MAIN OBJECTIVE", "GET MONEY");
+    nathanBoss.x = -2100;
+  }
+
   if (frameCount < startFrame) {
+    nathanBoss.height = lerp(nathanBoss.height, 1, 0.1);
+    if (time == -1750) {
+      notify("You", "Ahh, what a lovely day!");
+    }
+    if (time == -1550) {
+      notify("You", "I sure hope nobody steals my backpack!");
+    }
+    if (time == -1350) {
+      notify("You", "Or my waterbottle...");
+    }
+    if (time == -1250) {
+      notify("You", "Or my jerky...");
+    }
+    if (time == -1150) {
+      notify("You", "Or my laptop...");
+    }
+    if (time == -1050) {
+      notify("You", "Or my notebooks...");
+    }
+    if (time == -950) {
+      notify("You", "Or my-");
+    }
+    if (time == -750) {
+      notify("Nathan", "Hee hee! Yoink!");
+    }
+    if (time == -650) {
+      nathanHeight = 0.5;
+      nathanBoss.height = 0.95;
+    }
+    if (time == -550) {
+      notify("Nathan", "Get trolled! I took your backpack!");
+    }
+    if (time == -350) {
+      notify("Nathan", "Give me a billion dollars!");
+    }
+    if (time == -250) {
+      notify("Nathan", "Or this backpack gets it!");
+    }
+    if (time == -1) {
+      notifs = [];
+    }
+    if (time >= -200) {
+      nathanBoss.x = lerp(nathanBoss.x, -2100, 0.1);
+    } else if (time >= -900) {
+      nathanBoss.x = lerp(nathanBoss.x, 200, 0.1);
+    } else {
+      nathanBoss.x = -100;
+    }
     return;
   }
+
+  if (battlingNathan) {
+    battleCutsceneFrames--;
+
+    nathanBoss.height = lerp(nathanBoss.height, 1, 0.1);
+    if (battleCutsceneFrames <= 0) {
+      nathanBoss.hLerp = lerp(nathanBoss.hLerp, nathanBoss.health / 1000000, 0.1);
+      nathanBoss.dLerp = lerp(nathanBoss.dLerp, 0, 0.1);
+      // nathan ai
+      nathanBoss.t++;
+      
+      nathanBoss.yv += GRAVITY * 0.8;
+      if (nathanBoss.t % 80 == 0) { // movement
+        nathanBoss.xv = random(0, 20) * Math.sign(position.x - nathanBoss.x);
+        nathanBoss.yv = random(-4, -2) * (position.y - 64 < nathanBoss.y ? 2 : 1);
+        nathanBoss.height += 0.1;
+      }
+      if (nathanBoss.t % 150 == 0) { // attack
+        let attack = floor(random(0, 4));
+
+        if (attack == 0) {
+          for (let i = 0; i < 128; i++) {
+            let angle = (i / 128) * TWO_PI;
+            enemyBullets.push({
+              'x': nathanBoss.x,
+              'y': nathanBoss.y,
+              'xv': sin(angle) * 5,
+              'yv': cos(angle) * 5,
+              'l': 10,
+              'val': floor(nathanBoss.t * 100),
+              't': 400,
+            });
+          }
+        } else if (attack == 1) {
+          let angle = atan2(position.x - nathanBoss.x, position.y - nathanBoss.y);
+          this.xv = sin(angle) * 40;
+          this.yv = cos(angle) * 40;
+        } else if (attack == 2) {
+          for (let i = 0; i < 4; i++) {
+            enemies.push(new Enemy(nathanBoss.x + random(-128, 128), nathanBoss.y + random(-128, 128), floor(random(0, 3)), 10));
+          }
+        } else if (attack == 3) {
+          this.xv = 0;
+          this.yv = -2;
+          this.health = floor(lerp(this.health, 1000000, 0.2));
+        }
+      }
+
+      let newnX = nathanBoss.x + nathanBoss.xv;
+      let newnY = nathanBoss.y + nathanBoss.yv;
+      
+      if (newnX - 128 < -3000) {
+        nathanBoss.xv = abs(nathanBoss.xv) * 0.9;
+        nathanBoss.x = -3000 + 128;
+      }
+      if (newnX + 128 > -1500) {
+        nathanBoss.xv = -abs(nathanBoss.xv) * 0.9;
+        nathanBoss.x = -1500 - 128;
+      }
+      if (newnY > -1000) {
+        nathanBoss.yv = -abs(nathanBoss.yv) * 0.9;
+        nathanBoss.y = -1000;
+      }
+      if (newnY - 256 < -2000) {
+        nathanBoss.yv = abs(nathanBoss.yv) * 0.9;
+        nathanBoss.y = -2000 + 256;
+      }
+
+      nathanBoss.x += nathanBoss.xv;
+      nathanBoss.y += nathanBoss.yv;
+      
+      if (dist(nathanBoss.x, nathanBoss.y - 128, position.x, position.y) < 160) {
+        if (invincibility <= 0) {
+          let moneyLoss = floor(nathanBoss.t * 100);
+          money -= moneyLoss;
+          stats['money lost'] += moneyLoss;
+          addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
+          velX = nathanBoss.xv * 1.1;
+          nathanHeight = 0.8;
+          velY = -random(5, 10);
+          position.y -= 4;
+          invincibility = 20;
+          cameraShake = 15 * getValue('camera shake');
+      
+          multiplier = ((multiplier - 1) / 2) + 1;
+          multAnim = 0.5;
+        }
+      }
+
+      bullets.forEach(bullet => {
+        let hit = inteceptCircleLineSeg({
+          radius: 170, 
+          center: createVector(nathanBoss.x, nathanBoss.y - 128)
+        }, {
+          p1: createVector(bullet['x'], bullet['y']),
+          p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
+        });
+        if (hit.length > 0) {
+          nathanBoss.health -= ceil(bullet['damage'] * getValue("damage") * 0.6);
+          nathanBoss.xv += sin(bullet['dir']) * 0.1;
+          nathanBoss.yv += sin(bullet['dir']) * 0.1;
+          nathanBoss.height = 0.9;
+          nathanBoss.dLerp = 1;
+
+          bullet['time'] *= bullet['pen'] * getValue("penetration");
+          bullet['time'] -= 1;
+  
+          addParticles(4, 5, bullet['x'], bullet['y'], -4, 4, -4, 4);
+        }
+      });
+
+      if (nathanBoss.height < 0.001) {
+        nathanBoss.height = 0.001;
+      }
+
+      if (nathanBoss.health <= 0) {
+        wonTheGame = true;
+        battlingNathan = false;
+        stats['damage done'] += 1000000;
+        stats['enemies killed'] += 1;
+
+        enemies.forEach(enemy => {
+          enemy.health = -1;
+        });
+
+        wonBackpack = createVector(nathanBoss.x, nathanBoss.y);
+        addParticles(100, 20, nathanBoss.x, nathanBoss.y, -10, 10, -15, 5);
+        notify("YOU WIN!", "Congratulations!");
+        stopTime = frameCount;
+      } 
+
+    }
+  }
+
+  if (battleCutsceneFrames == -1) {
+    nathanBoss.health = 1000000;
+    notifs = [];
+    notify("MAIN OBJECTIVE", "DEFEAT NATHAN");
+  }
+
+  if (battlingNathan && battleCutsceneFrames > 0) {
+    enemies = [];
+    bullets = [];
+    enemyBullets = [];
+    particles = [];
+
+    cutscene.letterbox = lerp(cutscene.letterbox, 1, 0.1);
+    startFrame++;
+
+    if (battleCutsceneFrames == 1150) {
+      notify("Nathan", "So you've arrived.");
+    }
+    if (battleCutsceneFrames == 950) {
+      notify("You", "Here's your money.");
+    }
+    if (battleCutsceneFrames == 750) {
+      notify("You", "Now give me my backpack!");
+    }
+    if (battleCutsceneFrames == 550) {
+      notify("Nathan", "I'm afraid I can't do that.");
+    }
+    if (battleCutsceneFrames == 350) {
+      notify("You", "What are you waiting for?");
+    }
+    if (battleCutsceneFrames == 150) {
+      notify("Nathan", "You'll have to fight me first!");
+    }
+    return;
+  }
+  cutscene.letterbox = lerp(cutscene.letterbox, 0, 0.1);
 
   equippedGuns[currentGunSlot]['ammo'] = ammo;
 
@@ -873,14 +1164,6 @@ function update() {
   let newX = position.x + velX;
   let newY = position.y + velY;
 
-  localWalls = [];
-
-  walls.forEach(wall => {
-    if(isWithinCamera(wall.x, wall.y, wall.w, wall.h, width)) {
-      localWalls.push(wall);
-    }
-  });
-  
   let prevGrounded = isGrounded;
   isGrounded = false;
   localWalls.forEach(wall => {
@@ -949,11 +1232,34 @@ function update() {
     
   });
 
-  position.x = newX;
-  position.y = newY;  
+  if (!wonTheGame) {
+    position.x = newX;
+    position.y = newY; 
+    wonLerp = 0;
+  } else {
+    addParticles(10, 10, nathanBoss.x, nathanBoss.y, -10, 10, -15, 5);
+    velX = 0;
+    velY = 0;
+    position.x = lerp(position.x, nathanBoss.x, 0.1);
+    position.y = lerp(position.y, nathanBoss.y - 300, 0.1);
+    wonLerp = lerp(wonLerp, 1, 0.04);
 
-  if (position.x < -500 && money < 1000000000) {
+    wonBackpack = createVector(lerp(wonBackpack.x, position.x, 0.02), lerp(wonBackpack.y, position.y - 148, 0.02));
+  }
+
+  if (!battlingNathan && position.x < -500 && money < 1000000000) {
     position.x = -500;
+  } else if (battlingNathan && position.x > -1500) {
+    position.x = -1500;
+  }
+
+  if (!wonTheGame && position.x < -1500 && !battlingNathan) {
+    enemies = [];
+    bullets = [];
+    enemyBullets = [];
+    particles = [];
+    battlingNathan = true;
+    battleCutsceneFrames = 1200;
   }
 
   if (nathanHeight < 0.001) {
@@ -964,6 +1270,7 @@ function update() {
     reloadTime -= 1;
     if (reloadTime <= 0) {
       ammo = floor(guns[currentGun]['maxAmmo'] * getValue('ammo'));
+      stats['times reloaded'] += 1;
     }
   }
 
@@ -999,7 +1306,9 @@ function update() {
         p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
       });
       if (hit.length > 0) {
-        enemy.health -= floor(bullet['damage'] * getValue("damage") * getValue("damage"));
+        let damageValue = floor(bullet['damage'] * getValue("damage") * getValue("damage"));
+        stats['damage done'] += damageValue;
+        enemy.health -= damageValue;
         bullet['time'] *= bullet['pen'] * getValue("penetration");
         bullet['time'] -= 1;
 
@@ -1057,6 +1366,7 @@ function update() {
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 60) {
       let moneyLoss = floor(enemy.value() * (enemy.l / 5));
       money -= moneyLoss;
+      stats['money lost'] += moneyLoss;
       addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
       velX = enemy.xv;
       nathanHeight = 0.8;
@@ -1107,6 +1417,7 @@ function update() {
     if (invincibility <= 0 && dist(position.x, position.y, bullet['x'], bullet['y']) < 60) {
       let moneyLoss = floor(bullet['val'] * (bullet['l'] / 20));
       money -= moneyLoss;
+      stats['money lost'] += moneyLoss;
       addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
       velX = bullet['xv'];
       nathanHeight = 0.8;
@@ -1128,6 +1439,26 @@ function update() {
     }
     return true;
   });
+
+  if (!announcedGoBack && money >= 1000000000) {
+    notify("MAIN OBJECTIVE", "GO BACK");
+    announcedGoBack = true;
+  }
+
+  if (money < 0) {
+    selfDestructTimer --;
+    if (selfDestructTimer < 0) {
+      document.getElementById("body").append("the debt collectors came and blew up the whole website. great work dumbass.");
+      let elements = document.getElementsByTagName("canvas");
+      for (let i = 0; i < elements.length; i++) {
+        elements[i].remove();
+      }
+      selfDestructTimer = 9999999999999;
+      return;
+    }
+  } else {
+    selfDestructTimer = 1000;
+  }
 
   aim = atan2(aimX - camera.x, aimY - camera.y + 32);
   
@@ -1244,8 +1575,16 @@ function keyPressed() {
       }
   }
 
-  if (keyCode == CONTROL || keyCode == SHIFT) {
+  if (keyCode == CONTROL && keyCode == SHIFT) {
     d5340dbe53de7c8912916a41d074ea92 = true;
+  }
+
+  if (inMainMenu) {
+    return;
+  }
+
+  if (frameCount < startFrame || (battlingNathan && battleCutsceneFrames > 0)) {
+    return;
   }
 
   if (key == 'q') {
@@ -1298,6 +1637,20 @@ function keyReleased() {
 }
 
 function mousePressed() {
+  if (inMainMenu) {
+    return;
+  }
+
+  if (frameCount < startFrame) {
+    startFrame = frameCount;
+    return;
+  } 
+
+  if (battlingNathan && battleCutsceneFrames > 0) {
+    battleCutsceneFrames = 0;
+    return;
+  }
+
   if (guns[currentGun]['mode'] == 'single') {
     if (!shopOpen) {
       if (reloadTime <= 0) {
@@ -1316,6 +1669,7 @@ function mousePressed() {
 
 function shoot() {
   for (let i = 0; i < guns[currentGun]['shots']; i++) {
+    stats['bullets fired'] += 1;
     bullets.push({
       'x': position.x + sin(aim) * 40,
       'y': position.y + cos(aim) * 40 - 32,
@@ -1337,7 +1691,7 @@ function shoot() {
 }
 
 function addParticles(count, size, x, y, xv, xvm, yv, yvm) {
-  if (particles.length + count > 100) {
+  if (!wonTheGame && particles.length + count > 200) {
     return;
   }
   for (let i = 0; i < count; i++) {
@@ -1366,11 +1720,24 @@ function addTextParticle(count, size, x, y, xv, xvm, yv, yvm, text, r, g, b) {
 }
 
 function startGame() {
-  startFrame = frameCount;
+  notifs = [];
+  startFrame = frameCount + 1800;
 }
 
+/*
+ /$$$$$$$  /$$$$$$$   /$$$$$$  /$$      /$$
+| $$__  $$| $$__  $$ /$$__  $$| $$  /$ | $$
+| $$  \ $$| $$  \ $$| $$  \ $$| $$ /$$$| $$
+| $$  | $$| $$$$$$$/| $$$$$$$$| $$/$$ $$ $$
+| $$  | $$| $$__  $$| $$__  $$| $$$$_  $$$$
+| $$  | $$| $$  \ $$| $$  | $$| $$$/ \  $$$
+| $$$$$$$/| $$  | $$| $$  | $$| $$/   \  $$
+|_______/ |__/  |__/|__/  |__/|__/     \__/
+*/
 
 function draw() {
+  noCursor();
+
   let frameTime = Date.now();
   background(250);
   if (inMainMenu) {
@@ -1387,7 +1754,7 @@ function draw() {
     text("Game Of The Year Edition", width / 2, height / 2 - 160);
 
     imageMode(CENTER);
-    image(nathans[currentNathan]['image'], width / 2, height / 2 + sin(frameCount * 0.06) * 10, 80, 80);
+    image(nathans[currentNathan]['image'], width / 2, height / 2 + sin(frameCount * 0.06) * 10, 64, 64);
     
     textSize(20);
     text(toTitleCase(currentNathan), width / 2, height / 2 + 100);
@@ -1403,6 +1770,7 @@ function draw() {
 
       if (mouseIsPressed) {
         inMainMenu = false;
+        startGame();
       }
     } else {
       fill(255);
@@ -1417,10 +1785,6 @@ function draw() {
 
     return;
   }
-
-
-  noCursor();
-  
   update();
 
   let offset = createVector(width / 2 - camera.x + random(cameraShake, -cameraShake), height / 2 - camera.y + random(cameraShake, -cameraShake));
@@ -1446,6 +1810,15 @@ function draw() {
   textSize(400);
   text(floor((position.x - 200) / 2500), floor((position.x - 200) / 2500) * 2500 + 1500, -250);
 
+  imageMode(CORNER);
+  fill(0);
+  stroke(0);
+  rect(nathanBoss.x - 128 / nathanBoss.height, nathanBoss.y - 256 * nathanBoss.height, 256 / nathanBoss.height, 256 * nathanBoss.height);
+  image(enem['nathan']['image'], nathanBoss.x - 128 / nathanBoss.height + 1.5, nathanBoss.y - 256 * nathanBoss.height+ 1.5, 254 / nathanBoss.height, 254 * nathanBoss.height);
+  
+  fill(255, nathanBoss.dLerp * 100);
+  rect(nathanBoss.x - 128 / nathanBoss.height, nathanBoss.y - 256 * nathanBoss.height, 256 / nathanBoss.height, 256 * nathanBoss.height);
+
   stroke(0);
   strokeWeight(1);
   fill(255);
@@ -1465,19 +1838,15 @@ function draw() {
     wall.draw();
   });
 
-  fill(0);
-  noStroke();
-  textSize(32);
-  textAlign(CENTER, CENTER);
-  text("Nathan's Lair", -700, -1300);
-
-  textSize(16);
-  text("$" + money.toLocaleString() + " / $1,000,000,000 (" + nf((money / 10000000), 0, 2) + "%)", -700, -1250);
-
   if (money < 1000000000) {
     stroke(0, 255, 255)
     for (let i = 0; i <  5; i++) {
       line(-532 + random(-5, 5), -1199, -532 + random(-5, 5), -1001);
+    }
+  } else if (battlingNathan) {
+    stroke(0, 255, 255)
+    for (let i = 0; i <  5; i++) {
+      line(-1500 + 32 + random(-5, 5), -1199, -1500 + 32 + random(-5, 5), -1001);
     }
   }
 
@@ -1515,9 +1884,11 @@ function draw() {
     }
   });
 
-  strokeWeight(1);
-  stroke(0, 100);
-  line(position.x + sin(aim) * 40, position.y - 32 * nathanHeight + cos(aim) * 40, position.x + sin(aim) * 1000, position.y - 32 + cos(aim) * 1000);
+  if (frameCount >= startFrame && !(battlingNathan && battleCutsceneFrames > 0)) {
+    strokeWeight(1);
+    stroke(0, 100);
+    line(position.x + sin(aim) * 40, position.y - 32 * nathanHeight + cos(aim) * 40, position.x + sin(aim) * 1000, position.y - 32 + cos(aim) * 1000);
+  }
 
   if (AUTOAIM_ENABLED) {
     strokeWeight(3);
@@ -1528,21 +1899,63 @@ function draw() {
     line(aimX, aimY - 20, aimX, aimY + 20);
   }
 
-  fill(0);
-  noStroke();
   particles.forEach(particle => {
     if (particle['text'] === undefined) {
+      fill(0);
+      noStroke();
       ellipse(particle['x'], particle['y'], particle['time'], particle['time']);
     } else {
+      fill(0);
+      noStroke();
       let col = particle['col'];
       fill(col[0], col[1], col[2]);
       textSize(particle['time'] * 4);
       textAlign(CENTER, CENTER);
       text(particle['text'], particle['x'], particle['y']);
     }
-  })
+  });
+
+  fill(0);
+  noStroke();
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text("Nathan's Lair", -700, -1300);
+
+  textSize(16);
+  text("$" + money.toLocaleString() + " / $1,000,000,000 (" + nf((money / 10000000), 0, 2) + "%)", -700, -1250);
+
+  if (wonTheGame) {
+    imageMode(CENTER);
+    image(cutscene.transBackpack, wonBackpack.x, wonBackpack.y + sin(frameCount * 0.04) * 20, 128, 128);
+  }
 
   pop();
+
+  rectMode(CORNER);
+  fill(0);
+  noStroke();
+  rect(0, -100 + cutscene.letterbox * 100, width, 100);
+  rect(0, height - 100 * cutscene.letterbox, width, 100);
+  if (frameCount < startFrame || (battlingNathan && battleCutsceneFrames > 0)) {
+    textSize(12);
+    textAlign(RIGHT, BOTTOM);
+    text("Click to skip", width - 1, height - 101 * cutscene.letterbox);
+  }
+
+  let time = wonTheGame ? stopTime - startFrame : frameCount - startFrame;
+  if (frameCount < startFrame) {
+    imageMode(CORNER);
+
+    if (time < -650) {
+      image(cutscene.transBackpack, width / 2 - 80, height / 2 - 64, 64, 64);
+    } else {
+      image(cutscene.transBackpack, nathanBoss.x + 540, height / 2 - 164, 64, 64);
+    }
+
+    drawTop();
+
+    return;
+  }
 
   textSize(100);
   fill(0);
@@ -1555,6 +1968,15 @@ function draw() {
   textSize(12);
   text("[WASD] to move, [Mouse] to aim, [Q] to open the Shop, [1-5] to switch guns", 8, 135);
 
+  textSize(20);
+  textAlign(LEFT, BOTTOM);
+  if (d5340dbe53de7c8912916a41d074ea92) {
+    fill(255, 0, 0);  
+  }
+  text("Time: " + time.toLocaleString() + " (approx. " + nf(floor(time / 60 / 60), 2, 0) + ":" + nf(floor(time / 60) % 60, 2, 0) + ")", 4, height - 4);
+
+  fill(0);
+  noStroke();
   textSize(min(64 * multAnim + comboAnim * 2 + multiplier * 0.2, 128));
   textAlign(CENTER, TOP);
   text(nf(multiplier, 1, 1) + "x", width / 2, 40);
@@ -1577,8 +1999,14 @@ function draw() {
     text("Cheater Mode", width / 2, 120);
   }
 
-  textAlign(RIGHT, BOTTOM);
+  if (money < 0) {
+    fill(255, 0, 0);
+    textSize(128);
+    textAlign(CENTER, CENTER);
+    text("IN DEBT (" + selfDestructTimer + ")", width / 2, height / 2);
+  }
 
+  textAlign(RIGHT, BOTTOM);
   textSize(64);
   if (reloadTime > 0) {
     fill(100);
@@ -1614,6 +2042,30 @@ function draw() {
     let txt = "[" + (i + 1) + "] " + (gn['name'] == '' ? 'empty' : gn['name']);
     text(txt, width - 5, height - 400 + 20 * i);
   }
+
+  if (battlingNathan && battleCutsceneFrames < 0) {
+    strokeWeight(1);
+    stroke(0);
+
+    fill(100);
+    rect(5, 135, width - 10, 30);
+
+    fill(255 * (1 - nathanBoss.hLerp), 255 * nathanBoss.hLerp, 0);
+    rect(5, 135, (width - 10) * nathanBoss.hLerp, 30);
+
+    textSize(20);
+    fill(0);
+    noStroke();
+
+    textAlign(CENTER, CENTER);
+    text(nathanBoss.health + " / 1000000", width / 2, 150);
+    
+    textSize(32);
+    text("Nathan", width / 2, 115);
+  }
+
+  noStroke();
+  fill(0);
 
   push();
   translate(shopPos, 0);
@@ -1745,18 +2197,123 @@ function draw() {
 
   pop();
 
-  stroke(0);
-  noFill();
-  ellipse(mouseX + 0.5, mouseY + 0.5, 30, 30);
-  line(mouseX - 20, mouseY, mouseX + 20, mouseY);
-  line(mouseX, mouseY - 20, mouseX, mouseY + 20);
+  if (wonTheGame) {
+    push();
+
+    translate(width - wonLerp * 410, 0);
+    
+    stroke(0);
+    fill(255);
+    rect(0, 100, 400, height - 200);
+
+    fill(0);
+    noStroke();
+
+    textAlign(CENTER, CENTER);
+    textStyle(BOLD);
+    textSize(32);
+    text("CONGRATULATIONS!", 200, 150);
+
+    textSize(16);
+
+    if (frameCount > stopTime + 100) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Damage Done", 195, 200);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['damage done'].toLocaleString(), 205, 200);
+    }
+    if (frameCount > stopTime + 150) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Enemies Killed", 195, 220);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['enemies killed'].toLocaleString(), 205, 220);
+    }
+    if (frameCount > stopTime + 200) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Money Earned", 195, 240);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['money earned'].toLocaleString(), 205, 240);
+    }
+    if (frameCount > stopTime + 250) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Money Spent", 195, 260);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['money spent'].toLocaleString(), 205, 260);
+    }
+    if (frameCount > stopTime + 300) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Money Lost", 195, 280);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['money lost'].toLocaleString(), 205, 280);
+    }
+    if (frameCount > stopTime + 350) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Upgrades Purchased", 195, 300);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['upgrades purchased'].toLocaleString(), 205, 300);
+    }
+    if (frameCount > stopTime + 400) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Bullets Fired", 195, 320);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['bullets fired'].toLocaleString(), 205, 320);
+    }
+    if (frameCount > stopTime + 450) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Times Reloaded", 195, 340);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(stats['times reloaded'].toLocaleString(), 205, 340);
+    }
+    if (frameCount > stopTime + 500) {
+      textAlign(RIGHT, TOP);
+      textStyle(NORMAL);
+      text("Time", 195, 360);
+
+      textAlign(LEFT, TOP);
+      textStyle(BOLD);
+      text(time.toLocaleString(), 205, 360);
+    }
+
+    if (frameCount > stopTime + 600) {
+      textAlign(CENTER, CENTER);
+      textStyle(BOLD);
+      text("but can you do better?", 200, height - 200);
+    }
+
+    if (frameCount > stopTime + 700) {
+      textAlign(CENTER, CENTER);
+      textStyle(NORMAL);
+      text("(reload to try again)", 200, height - 150);
+    }
+
+    pop();
+  }
 
   drawTop();
-  frameTime -= Date.now();
-  fill(0);
-  noStroke();
-  textSize(24);
-  textAlign(LEFT, TOP);
 }
 
 function drawTop() {
@@ -1787,6 +2344,11 @@ function drawTop() {
   textSize(12);
   text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
   
+  stroke(0);
+  noFill();
+  ellipse(mouseX + 0.5, mouseY + 0.5, 30, 30);
+  line(mouseX - 20, mouseY, mouseX + 20, mouseY);
+  line(mouseX, mouseY - 20, mouseX, mouseY + 20);
 }
 
 function randomBias(min, max, bias, inf) {
@@ -1941,7 +2503,7 @@ class Enemy {
     this.l = l;
     this.xv = 0;
     this.yv = 0;
-    this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 2 : 1));
+    this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 1.2 : 1));
     this.bulletspeed = (400 - 12 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
     this.movedelay = this.speed;
     this.shootdelay = this.bulletspeed;
@@ -2049,8 +2611,10 @@ class Enemy {
 
   die() {
     if (!this.nomoney) {
+      stats['enemies killed'] += 1;
       let moneyAmount = this.value();
       money += moneyAmount;
+      stats['money earned'] += moneyAmount;
       multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
       addTextParticle(1, 12, this.x, this.y, -2, 2, -8, -12, "+$" + moneyAmount.toLocaleString(), 0, 0, 0);
       addParticles(10, 10, this.x, this.y, -8, 8, -8, 8);
