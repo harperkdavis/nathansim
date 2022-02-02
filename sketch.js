@@ -1308,7 +1308,7 @@ function update() {
         p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
       });
       if (hit.length > 0) {
-        let damageValue = floor(bullet['damage'] * pow(getValue("damage"), 1.5));
+        let damageValue = floor(bullet['damage'] * pow(getValue("damage"), 1.7));
         stats['damage done'] += damageValue;
         enemy.health -= damageValue;
         bullet['time'] *= bullet['pen'] * getValue("penetration");
@@ -1366,7 +1366,7 @@ function update() {
       }
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 60) {
-      let moneyLoss = floor(enemy.value() * (enemy.l / 5));
+      let moneyLoss = floor(enemy.value() * (enemy.l / 10));
       money -= moneyLoss;
       stats['money lost'] += moneyLoss;
       addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
@@ -1488,7 +1488,7 @@ function loadLevel(l) {
   for (let i = 0; i < floor((pow(2, l / 24) + 10 + l / 12) * random(1, 2)); i++) {
     let spawn = gen['spawns'][floor(random(0, gen['spawns'].length))];
     let type = spawn[2];
-    let level = floor(max(min((l / 7 + 1)* spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
+    let level = floor(max(min((l / 10 + 1)* spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
     let newEnemy = new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level);
     
     for (let i = 0; i < 3; i++) {
@@ -2614,7 +2614,7 @@ class Enemy {
   }
 
   value() {
-    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * pow(getValue("money"), 1.5) * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * pow(getValue("money"), 1.7) * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
   }
 
   die() {
