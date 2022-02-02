@@ -398,7 +398,7 @@ let guns = {
     'power': 0,
     'spread': 20,
     'recoil': 2,
-    'price': 1000000000
+    'price': 10000000000
   }
 }
 
