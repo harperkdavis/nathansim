@@ -1306,7 +1306,7 @@ function update() {
         p2: createVector(bullet['x'] + sin(bullet['dir']) * bullet['speed'], bullet['y'] + cos(bullet['dir']) * bullet['speed'])
       });
       if (hit.length > 0) {
-        let damageValue = floor(bullet['damage'] * getValue("damage") * getValue("damage"));
+        let damageValue = floor(bullet['damage'] * pow(getValue("damage"), 1.5));
         stats['damage done'] += damageValue;
         enemy.health -= damageValue;
         bullet['time'] *= bullet['pen'] * getValue("penetration");
@@ -2607,7 +2607,7 @@ class Enemy {
   }
 
   value() {
-    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * pow(getValue("money") * 1.5) * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
   }
 
   die() {
