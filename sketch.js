@@ -1578,7 +1578,7 @@ function keyPressed() {
       }
   }
 
-  if (keyCode == CONTROL && keyCode == SHIFT) {
+  if (keys[CONTROL] && keys[SHIFT]) {
     d5340dbe53de7c8912916a41d074ea92 = true;
   }
 
