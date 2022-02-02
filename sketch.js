@@ -1,7 +1,17 @@
-const MAJOR_VERSION = 0, MINOR_VERSION = 6, PATCH_VERSION = 1;
-const PATCH_NAME = "Cheater Mode Upgrade";
+const MAJOR_VERSION = 0, MINOR_VERSION = 7, PATCH_VERSION = 0;
+const PATCH_NAME = "GIANT Optimization & Fixes Patch";
 
-let inMainMenu = false;
+let NSG = {
+  localHttpProxy: 2000,
+  webserverSocketConnection: "Promise: {...}",
+  netsurferIp: "127.0.0.1",
+  apiKey: 1519750495123,
+  hashpileToken: "f51241ab6c89e2baf1"
+  // ok good nathan is gone!
+
+}
+
+let inMainMenu = true;
 
 let sfx = {
   'shoot': undefined,
@@ -84,7 +94,7 @@ let upgrades = {
   "reload": {    
     value: 0.5,
     baseval: 0.5,
-    incr: 0.25,
+    incr: 0.1,
     level: 0,
     price: 4000,
     baseprice: 4000,
@@ -93,7 +103,7 @@ let upgrades = {
   "recoil": {    
     value: 0.5,
     baseval: 0.5,
-    incr: 0.25,
+    incr: 0.1,
     level: 0,
     price: 2000,
     baseprice: 2000,
@@ -416,16 +426,7 @@ let shopPos = -1000;
 let shop = {};
 let jumpCooldown = 0;
 
-let notifs = [
-  {
-    title: "Welcome to nathan simulator!",
-    subtitle: "Enjoy your stay!",
-    in: 0,
-    pos: 0,
-    target: 1,
-    t: 400
-  }
-]
+let notifs = []
 
 let stocks = [
   {
@@ -548,10 +549,22 @@ let lastLoadedLevel = 0;
 let GENERATOR_SEED = 10;
 let gens = [];
 
+function loadSave() {
+  let lastSave = localStorage.getItem("lastSave");
+  if (lastSave == undefined) {
+    localStorage.setItem("lastSave", Date.now());
+    notify("New save created!", "No save data found.");
+  } else {
+    notify("Save loaded!", "Found local save!");
+  }
+}
+
 function setup() {
   GENERATOR_SEED = random(0, 10000000);
   randomSeed(GENERATOR_SEED);
   createCanvas(innerWidth, innerHeight);
+
+  loadSave();
 
   walls = [
     new Wall(-10000, 0, 1000000, 10000),
@@ -771,6 +784,7 @@ function windowResized() {
 }
 
 function update() {
+  updateNotifs();
 
   if (d5340dbe53de7c8912916a41d074ea92 || bd5490f1dfa716689492d073e22e1d93) {
     d5340dbe53de7c8912916a41d074ea92 = true;
@@ -794,6 +808,10 @@ function update() {
 
   shopPos = lerp(shopPos, shopOpen ? 0 : -1000, 0.1);
   ammoAnim = lerp(ammoAnim, ammo / floor(guns[currentGun]['maxAmmo'] * getValue('ammo')), 0.2);
+
+  if (frameCount < startFrame) {
+    return;
+  }
 
   equippedGuns[currentGunSlot]['ammo'] = ammo;
 
@@ -858,7 +876,7 @@ function update() {
   localWalls = [];
 
   walls.forEach(wall => {
-    if (!(wall.x > width * 2 && wall.x + wall.w < -width && wall.y > height * 2 && wall.y + wall.h < -height)) {
+    if(isWithinCamera(wall.x, wall.y, wall.w, wall.h, width)) {
       localWalls.push(wall);
     }
   });
@@ -969,6 +987,9 @@ function update() {
 
   bullets.forEach(bullet => {
     bullet['time'] -= 1;
+    if (!isWithinCamera(bullet['x'], bullet['y'], 0, 0, width)) {
+      bullet['time'] = 0;
+    }
     enemies.forEach(enemy => {
       let hit = inteceptCircleLineSeg({
         radius: 100, 
@@ -1006,6 +1027,9 @@ function update() {
   });
 
   particles.forEach(particle => {
+    if (!isWithinCamera(particle['x'], particle['y'], 0, 0, 32)) {
+      particle['time'] = 0;
+    }
     if (particle['time'] > 0) {
       particle['time'] -= 0.2;
 
@@ -1019,6 +1043,9 @@ function update() {
 
   let autoaimed = false;
   enemies.forEach(enemy => {
+    if (!isWithinCamera(enemy.x, enemy.y, 0, 0, width)) {
+      return;
+    }
     enemy.update();
     if (!autoaimed) {
       let distToAim = dist(enemy.x, enemy.y, aimX, aimY)
@@ -1028,7 +1055,7 @@ function update() {
       }
     }
     if (invincibility <= 0 && dist(position.x, position.y, enemy.x, enemy.y) < 60) {
-      let moneyLoss = floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, enemy.l)) / getValue("money"));
+      let moneyLoss = floor(enemy.value() * (enemy.l / 5));
       money -= moneyLoss;
       addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
       velX = enemy.xv;
@@ -1048,7 +1075,19 @@ function update() {
   }
   invincibility--;
 
+  enemies = enemies.filter(enemy => {
+    if (enemy.health <= 0) {
+      enemy.die();
+      jumps = getValue('jumps');
+      return false;
+    }
+    return true;
+  });
+
   enemyBullets.forEach(bullet => {
+    if (!isWithinCamera(bullet['x'], bullet['y'], 0, 0, width)) {
+      bullet['t'] = 0;
+    }
     bullet['x'] += bullet['xv'];
     bullet['y'] += bullet['yv'];
     localWalls.forEach(wall => {
@@ -1066,7 +1105,7 @@ function update() {
     });
     addParticles(2, 4, bullet['x'], bullet['y'], -4, 4, 2, 4);
     if (invincibility <= 0 && dist(position.x, position.y, bullet['x'], bullet['y']) < 60) {
-      let moneyLoss = floor((randomBias(20, 40, 1 - getValue('luck') / 2, 1) * pow(3, bullet['l'])) / getValue("money"));
+      let moneyLoss = floor(bullet['val'] * (bullet['l'] / 20));
       money -= moneyLoss;
       addTextParticle(1, 12, position.x, position.y, -2, 2, -8, -12, "-$" + moneyLoss.toLocaleString(), 255, 0, 0);
       velX = bullet['xv'];
@@ -1089,15 +1128,6 @@ function update() {
     }
     return true;
   });
-  
-  enemies = enemies.filter(enemy => {
-    if (enemy.health <= 0) {
-      enemy.die();
-      jumps = getValue('jumps');
-      return false;
-    }
-    return true;
-  });
 
   aim = atan2(aimX - camera.x, aimY - camera.y + 32);
   
@@ -1105,17 +1135,12 @@ function update() {
     calcStock(frameCount - startFrame);
   }
 
-  notifs.forEach(notif => {
-    notif.pos = lerp(notif.pos, notif.target, 0.1);
-    notif.t -= 1;
-  });
-
-
   let level = floor(position.x / 2500);
   if (level + 1 > lastLoadedLevel) {
     loadLevel(level + 1);
     lastLoadedLevel = level + 1;
   }
+
 }
 
 function loadLevel(l) {
@@ -1129,11 +1154,11 @@ function loadLevel(l) {
   for (let i = 0; i < floor((pow(2, l / 24) + 10 + l / 12) * random(1, 2)); i++) {
     let spawn = gen['spawns'][floor(random(0, gen['spawns'].length))];
     let type = spawn[2];
-    let level = floor(max(min(exp(l / 48) * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
+    let level = floor(max(min(l / 10 * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
     let newEnemy = new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level);
     
     for (let i = 0; i < 3; i++) {
-      localWalls.forEach(wall => {
+      walls.forEach(wall => {
         if (wall.within(newEnemy.x, newEnemy.y)) {
           newEnemy.y = wall.y - 10;
         }
@@ -1141,6 +1166,32 @@ function loadLevel(l) {
     }
     enemies.push(newEnemy);
   }
+}
+
+function updateNotifs() {
+  notifs.forEach(notif => {
+    notif.pos = lerp(notif.pos, notif.target, 0.1);
+    notif.in = lerp(notif.in, notif.t < 40 ? 0 : 1, 0.1);
+    notif.t -= 1;
+  });
+
+  notifs = notifs.filter(notif => {
+    return notif.t > 0;
+  });
+}
+
+function notify(title, subtitle) {
+  notifs.forEach(notif => {
+    notif.target++;
+  });
+  notifs.push({
+    title: title,
+    subtitle: subtitle,
+    in: 0,
+    pos: 0,
+    target: 0,
+    t: 400
+  });
 }
 
 function calcStock(frCount) {
@@ -1318,20 +1369,51 @@ function startGame() {
   startFrame = frameCount;
 }
 
+
 function draw() {
+  let frameTime = Date.now();
   background(250);
   if (inMainMenu) {
+    updateNotifs();
+
+    fill(0);
+    noStroke();
 
     textAlign(CENTER, CENTER);
     textSize(64);
     text("Nathan Simulator", width / 2, height / 2 - 200);
 
     textSize(16);
-    text("game of the year edition", width / 2, height / 2 - 160);
+    text("Game Of The Year Edition", width / 2, height / 2 - 160);
 
     imageMode(CENTER);
-    image(nathans[currentNathan]['standard'], width / 2, height / 2);
-    text(titleCase(currentNathan), width / 2, height / 2 + 100);
+    image(nathans[currentNathan]['image'], width / 2, height / 2 + sin(frameCount * 0.06) * 10, 80, 80);
+    
+    textSize(20);
+    text(toTitleCase(currentNathan), width / 2, height / 2 + 100);
+
+    stroke(0);
+    textAlign(CENTER, CENTER);
+    textSize(80);
+    if (isWithin(mouseX, mouseY, width / 2 - 150, height / 2 + 160, 300, 100)) {
+      fill(0);
+      rect(width / 2 - 150, height / 2 + 160, 300, 100);
+      fill(255);
+      text("PLAY!", width / 2, height / 2 + 215);
+
+      if (mouseIsPressed) {
+        inMainMenu = false;
+      }
+    } else {
+      fill(255);
+      rect(width / 2 - 150, height / 2 + 160, 300, 100);
+      fill(0);
+      text("PLAY!", width / 2, height / 2 + 215);
+    }
+    
+    
+
+    drawTop();
 
     return;
   }
@@ -1406,20 +1488,32 @@ function draw() {
   rect(-800, -1280, min((money / 1000000000), 1) * 200, 10);
 
   enemies.forEach(enemy => {
-    enemy.draw();
+    if (isWithinCamera(enemy.x, enemy.y, 0, 0, width / 2)) {
+      enemy.draw();
+    }
   });
 
-  fill(255);
-  stroke(0);
   enemyBullets.forEach(bullet => {
-    ellipse(bullet['x'], bullet['y'], 20, 20);
+    if (isWithinCamera(bullet['x'], bullet['y'], 0, 0, width / 2)) {
+      fill(255);
+      stroke(255, 0, 0);
+      ellipse(bullet['x'], bullet['y'], 20, 20);
+      let distn = dist(bullet['x'], bullet['y'], position.x, position.y);
+      if (distn < 300) {
+        noFill();
+        stroke(255, 0, 0, min(255, 600 - distn * 2))
+        ellipse(bullet['x'], bullet['y'], 80 + distn / 5, 80 + distn / 5);
+      }
+    }
   });
 
   stroke(0);
+  strokeWeight(2);
   bullets.forEach(bullet => {
-    strokeWeight(2);
-    line(bullet['x'], bullet['y'], bullet['x'] + sin(bullet['dir']) * (40 + bullet['damage'] * 0.2), bullet['y'] + cos(bullet['dir']) * (40 + bullet['damage'] * 0.2))
-  })
+    if (isWithinCamera(bullet['x'], bullet['y'], 0, 0, width / 2)) {
+      line(bullet['x'], bullet['y'], bullet['x'] + sin(bullet['dir']) * (40 + bullet['damage'] * 0.2), bullet['y'] + cos(bullet['dir']) * (40 + bullet['damage'] * 0.2))
+    }
+  });
 
   strokeWeight(1);
   stroke(0, 100);
@@ -1458,12 +1552,8 @@ function draw() {
   textSize(86);
   text("$" + money.toLocaleString("en-US"), 8, 50);
 
-  textSize(24);
-  text(d5340dbe53de7c8912916a41d074ea92 ? "Cheater Simulator" : "Nathan Simulator", 8, 4);
-
   textSize(12);
-  text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
-  text("Press [Q] to open the Shop, [1-6] to switch guns, [P] to respawn enemies", 8, 135);
+  text("[WASD] to move, [Mouse] to aim, [Q] to open the Shop, [1-5] to switch guns", 8, 135);
 
   textSize(min(64 * multAnim + comboAnim * 2 + multiplier * 0.2, 128));
   textAlign(CENTER, TOP);
@@ -1660,6 +1750,42 @@ function draw() {
   ellipse(mouseX + 0.5, mouseY + 0.5, 30, 30);
   line(mouseX - 20, mouseY, mouseX + 20, mouseY);
   line(mouseX, mouseY - 20, mouseX, mouseY + 20);
+
+  drawTop();
+  frameTime -= Date.now();
+  fill(0);
+  noStroke();
+  textSize(24);
+  textAlign(LEFT, TOP);
+}
+
+function drawTop() {
+  strokeWeight(1);
+
+  notifs.forEach(notif => {
+    fill(255);
+    stroke(0);
+    rect(width - 400 * notif.in, 10 + notif.pos * 70, 390, 60);
+
+    fill(0);
+    noStroke();
+    textStyle(BOLD);
+    textSize(20);
+    textAlign(LEFT, TOP);
+    text(notif.title, width - 400 * notif.in + 10, 20 + notif.pos * 70);
+
+    textStyle(NORMAL);
+    text(notif.subtitle, width - 400 * notif.in + 10, 42 + notif.pos * 70);
+  });
+  
+  fill(0);
+  noStroke();
+  textAlign(LEFT, TOP);
+  textSize(24);
+  text(d5340dbe53de7c8912916a41d074ea92 ? "Cheater Simulator" : "Nathan Simulator", 8, 4);
+
+  textSize(12);
+  text("Version " + MAJOR_VERSION + "." + MINOR_VERSION + "." + PATCH_VERSION + " - \"" + PATCH_NAME + "\"", 8, 30);
   
 }
 
@@ -1672,6 +1798,14 @@ function randomBias(min, max, bias, inf) {
 
 function isWithin(x, y, x1, y1, w, h) {
   return x >= x1 && x <= x1 + w && y >= y1 && y <= y1 + h;
+}
+
+function isWithinCamera(x, y, w, h, m = 32) {
+  let left = position.x - width / 2;
+  let right = position.x + width / 2;
+  let top = position.y - height / 2;
+  let bottom = position.y + height / 2;
+  return !(x + w < left - m || x > right + m || y + h < top - m || y > bottom + m);
 }
 
 // https://stackoverflow.com/questions/37224912/circle-line-segment-collision/37225895
@@ -1808,7 +1942,7 @@ class Enemy {
     this.xv = 0;
     this.yv = 0;
     this.speed = 160 - 10 * l * (this.t == 1 ? 0.5 : ((this.t == 2) ? 2 : 1));
-    this.bulletspeed = (300 - 10 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
+    this.bulletspeed = (400 - 12 * l * (this.t == 1 ? 1.5 : ((this.t == 2) ? 2 : 1))) * random(1, 1.4);
     this.movedelay = this.speed;
     this.shootdelay = this.bulletspeed;
     this.maxHealth = floor(10 * exp(l - 1) * (this.t == 1 ? 2 : (this.t == 2 ? 0.5 : 1)));
@@ -1832,7 +1966,7 @@ class Enemy {
     }
     this.yv += GRAVITY * 2;
 
-    if (this.shootdelay <= 0 && this.l >= 4) {
+    if (this.shootdelay <= 0 && this.level > 4) {
       let angle = atan2(position.x - this.x, position.y - 32 - this.y);
       enemyBullets.push({
         'x': this.x,
@@ -1840,6 +1974,7 @@ class Enemy {
         'xv': sin(angle) * 10,
         'yv': cos(angle) * 10,
         'l': this.l,
+        'val': this.value(),
         't': 200,
       });
       this.shootdelay = this.bulletspeed;
@@ -1892,24 +2027,29 @@ class Enemy {
     strokeWeight(1);
     stroke(0);
     fill(100);
-    rect(this.x - 50, this.y - 100, 100, 10);
+    rect(this.x - 50, this.y - 105, 100, 15);
 
     fill(255 * (1 - this.hLerp), 255 * this.hLerp, 0);
-    rect(this.x - 50, this.y - 100, 100 * this.hLerp, 10);
+    rect(this.x - 50, this.y - 105, 100 * this.hLerp, 15);
 
-    textSize(10);
+    textSize(15);
     fill(0);
     noStroke();
 
     textAlign(LEFT, TOP);
-    text(this.health + " / " + this.maxHealth, this.x - 48, this.y - 99.5);
+    text(this.health + " / " + this.maxHealth, this.x - 48, this.y - 104);
     
-    text("Lv. " + this.l, this.x - 48, this.y - 110);
+    textAlign(LEFT, BOTTOM);
+    text("Lv. " + this.l, this.x - 48, this.y - 106);
+  }
+
+  value() {
+    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
   }
 
   die() {
     if (!this.nomoney) {
-      let moneyAmount = floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * getValue("money") * getValue("money") * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+      let moneyAmount = this.value();
       money += moneyAmount;
       multiplier += 0.1 + randomBias(0, 0.2, getValue('luck') / 2, 1) * log(multiplier);
       addTextParticle(1, 12, this.x, this.y, -2, 2, -8, -12, "+$" + moneyAmount.toLocaleString(), 0, 0, 0);
