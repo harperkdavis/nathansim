@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 1, MINOR_VERSION = 0, PATCH_VERSION = 0;
+const MAJOR_VERSION = 1, MINOR_VERSION = 0, PATCH_VERSION = 1;
 const PATCH_NAME = "The Real Nathan Experience";
 
 let NSG = {
@@ -1485,7 +1485,7 @@ function loadLevel(l) {
   for (let i = 0; i < floor((pow(2, l / 24) + 10 + l / 12) * random(1, 2)); i++) {
     let spawn = gen['spawns'][floor(random(0, gen['spawns'].length))];
     let type = spawn[2];
-    let level = floor(max(min(l / 10 * spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
+    let level = floor(max(min((l / 8 + 1)* spawn[3] + pow(random(-1.2, 1.2), 2), 10), 1));
     let newEnemy = new Enemy(l * 2500 + 300 + spawn[0] * 100, -2000 + spawn[1] * 100, type, level);
     
     for (let i = 0; i < 3; i++) {
@@ -1834,6 +1834,7 @@ function draw() {
     rect(-32.5 * (1 / nathanHeight) + position.x, position.y, 32.5 * (1 / nathanHeight) + position.x, -65 * nathanHeight + position.y);
   }
 
+  rectMode(CORNER);
   localWalls.forEach(wall => {
     wall.draw();
   });
