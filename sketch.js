@@ -1135,6 +1135,7 @@ function update() {
     multiplier = 1;
   }
 
+  
   if (keys['s']) {
     nathanHeightTarget = 0.8;
   } else if (keys['w']) {
@@ -1443,6 +1444,7 @@ function update() {
 
   if (!announcedGoBack && money >= 1000000000) {
     notify("MAIN OBJECTIVE", "GO BACK");
+    notify("Press [G]", "To instantly teleport back");
     announcedGoBack = true;
   }
 
@@ -1587,6 +1589,10 @@ function keyPressed() {
   if (frameCount < startFrame || (battlingNathan && battleCutsceneFrames > 0)) {
     return;
   }
+
+  if (keys['g'] && money > 1000000000 && !wonTheGame && !battlingNathan) { 
+    position = createVector(100, -1200);
+  } 
 
   if (key == 'q') {
     shopOpen = !shopOpen;
@@ -2608,7 +2614,7 @@ class Enemy {
   }
 
   value() {
-    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * pow(getValue("money") * 1.5) * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
+    return floor(((50 + randomBias(0, 100, getValue('luck'), 1)) * multiplier) * pow(2, this.l) * pow(getValue("money"), 1.5) * (this.t == 1 ? 0.8 : (this.t == 2 ? 1.5 : 1)));
   }
 
   die() {
