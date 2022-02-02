@@ -1087,6 +1087,7 @@ function update() {
     }
     if (battleCutsceneFrames == 950) {
       notify("You", "Here's your money.");
+      money -= 1000000000;
     }
     if (battleCutsceneFrames == 750) {
       notify("You", "Now give me my backpack!");
