@@ -1504,7 +1504,7 @@ function update() {
   }
 
   if (NaN != NaN) {
-    cheaterMode();
+    // cheaterMode();
   }
 
 }
