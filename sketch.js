@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 1, MINOR_VERSION = 1, PATCH_VERSION = 0;
+const MAJOR_VERSION = 1, MINOR_VERSION = 1, PATCH_VERSION = 1;
 const PATCH_NAME = "The Full Game";
 
 let NSG = {
@@ -2028,7 +2028,7 @@ function draw() {
     let i = 0;
     top5.forEach(nath => {
       textStyle(NORMAL);
-      text(nath.name + ": " + nath.time, width / 2, 50 + i * 24);
+      text(nath.name + ": " + nath.time + " (approx. " + nf(floor(nath.time / 60 / 60), 2, 0) + ":" + nf(floor(nath.time / 60) % 60, 2, 0) + ")", width / 2, 50 + i * 24);
       i++;
     });
 
