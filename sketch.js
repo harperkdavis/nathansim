@@ -90,7 +90,7 @@ let achievements = [
   },
   {
     name: "Investor",
-    desc: "Beat the game without killing any enemies.",
+    desc: "Beat the game without killing any enemies (not including bossfight).",
     reward: "investor",
     max: 1,
     condition: () => {
@@ -2902,7 +2902,9 @@ class Enemy {
 
   die() {
     if (!this.nomoney) {
-      stats['enemies killed'] += 1;
+      if(!battlingNathan) {
+        stats['enemies killed'] += 1;
+      }
       let moneyAmount = this.value();
       money += moneyAmount;
       stats['money earned'] += moneyAmount;
