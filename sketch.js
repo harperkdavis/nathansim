@@ -1,4 +1,4 @@
-const MAJOR_VERSION = 1, MINOR_VERSION = 0, PATCH_VERSION = 2;
+const MAJOR_VERSION = 1, MINOR_VERSION = 0, PATCH_VERSION = 3;
 const PATCH_NAME = "The Real Nathan Experience";
 
 let NSG = {
