@@ -6,10 +6,28 @@ let NSG = {
   webserverSocketConnection: "Promise: {...}",
   netsurferIp: "127.0.0.1",
   apiKey: 1519750495123,
-  hashpileToken: "f51241ab6c89e2baf1"
+  hashpileToken: "f51241ab6c89e2baf1",
   // ok good nathan chen is gone!
-
+  unlockedNathans: ['standard'],
+  unlockSkin: function(nathan) {
+    this.unlockedNathans.push(nathan);
+    saveSave();
+  },
+  unlockedAchievements: [],
+  unlockAchievement: function(achievement) {
+    this.unlockSkin(achievement.reward)
+  }
 }
+
+let achievements = [
+  {
+    name: ""
+  }
+]
+
+let nathanCollection = [
+
+];
 
 let inMainMenu = true;
 let wonTheGame = false;
@@ -424,6 +442,8 @@ let enem = {
 let d5340dbe53de7c8912916a41d074ea92 = false;
 let bd5490f1dfa716689492d073e22e1d93 = false;
 let f6d62567f569f58d50984e9cf2e9e381 = false; let c6746de31d7af79544a2b78128106136 = false; let c21f8c99d751dc28802fd7c8ebe7ce4a = false;
+let ababbabbabbabbbbbbbabbbbbabbba = true;
+let abbaabbabbbabbabbbbabbbabababa = false;
 
 let currentGun = 'pistol';
 let currentNathan = 'standard';
@@ -588,15 +608,20 @@ let nathanBoss = {
 }
 
 function loadSave() {
-  /*
   let lastSave = localStorage.getItem("lastSave");
   if (lastSave == undefined) {
-    localStorage.setItem("lastSave", Date.now());
-    notify("New save created!", "No save data found.");
+    saveSave();
+    console.log("New save created!");
   } else {
     notify("Save loaded!", "Found local save!");
+    NSG = JSON.parse(localStorage.getItem("nsgData"));
+    console.log("Old save saved")
   }
-  */
+}
+
+function saveSave() {
+  localStorage.setItem("lastSave", Date.now());
+  localStorage.setItem("nsgData", JSON.stringify(NSG));
 }
 
 function setup() {
@@ -1478,6 +1503,25 @@ function update() {
     lastLoadedLevel = level + 1;
   }
 
+  if (NaN != NaN) {
+    cheaterMode();
+  }
+
+}
+
+function cheaterMode() {
+  ababbabbabbabbbbbbbabbbbbabbba = true;
+  abbaabbabbbabbabbbbabbbabababa = false;
+  abbaabbabbbabbabbbbabbbabababa = ababbabbabbabbbbbbbabbbbbabbba + [] + [];
+  if (abbaabbabbbabbabbbbabbbabababa) {
+    NSG.hashpileToken = '0';
+  }
+}
+
+function disableCheaterMode() {
+  ababbabbabbabbbbbbbabbbbbabbba = abbaabbabbbabbabbbbabbbabababa;
+  ababbabbabbabbbbbbbabbbbbabbba = ababbabbabbabbbbbbbabbbbbabbba;
+  bd5490f1dfa716689492d073e22e1d93 = false;
 }
 
 function loadLevel(l) {
